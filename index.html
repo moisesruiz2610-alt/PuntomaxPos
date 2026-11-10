@@ -132,6 +132,23 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 
 <section id="devoluciones" class="hidden">
 <div class="panel">
+ <h2>Cancelar venta completa</h2>
+ <p>Selecciona la venta que deseas cancelar.</p>
+
+ <label>Venta</label>
+ <select id="ventaCancelacion"></select>
+
+ <button class="danger" onclick="cargarVentaCancelacion()">
+  Buscar venta para cancelar
+ </button>
+
+ <div id="detalleCancelacion"></div>
+</div>
+
+<div class="panel">
+ <h3>Historial de cancelaciones</h3>
+ <div id="listaCancelaciones"></div>
+</div>
 <h2>Devoluciones y cancelaciones</h2>
 <p>Selecciona la venta que deseas devolver.</p>
 <label>Venta</label>
@@ -183,6 +200,7 @@ let ventas=leer("puntomax_ventas",[]).map((v,i)=>({
 }));
 let gastos=leer("puntomax_gastos",[]);
 let devoluciones=leer("puntomax_devoluciones",[]);
+let cancelaciones=leer("puntomax_cancelaciones",[]);
 let ventaSeleccionada=null;
 
 function guardar(){
@@ -190,6 +208,7 @@ function guardar(){
  localStorage.setItem("puntomax_ventas",JSON.stringify(ventas));
  localStorage.setItem("puntomax_gastos",JSON.stringify(gastos));
  localStorage.setItem("puntomax_devoluciones",JSON.stringify(devoluciones));
+ localStorage.setItem("puntomax_cancelaciones",JSON.stringify(cancelaciones));
 }
 
 function dinero(n){
@@ -223,9 +242,12 @@ function ver(seccion){
  if(seccion==="historial")mostrarHistorial();
  if(seccion==="gastos")mostrarGastos();
  if(seccion==="devoluciones"){
-  mostrarSelectVentas();
-  mostrarHistorialDevoluciones();
-  document.getElementById("detalleDevolucion").innerHTML="";
+ mostrarSelectVentas();
+ mostrarHistorialDevoluciones();
+ mostrarSelectCancelaciones();
+ mostrarHistorialCancelaciones();
+ document.getElementById("detalleDevolucion").innerHTML="";
+ document.getElementById("detalleCancelacion").innerHTML="";
  }
  if(seccion==="corte"){
   document.getElementById("fechaCorte").value=fechaHoy();
@@ -518,18 +540,169 @@ function mostrarGastos(){
  `).join("");
 }
 
-function mostrarSelectVentas(){
- const select=document.getElementById("ventaDevolucion");
- if(!ventas.length){
-  select.innerHTML='<option value="">No hay ventas registradas</option>';
+function mostrarSelectCancelaciones(){
+ const select=document.getElementById("ventaCancelacion");
+
+ const disponibles=ventas.filter(v=>
+  !cancelaciones.some(c=>c.ventaId===v.id)
+ );
+
+ if(!disponibles.length){
+  select.innerHTML='<option value="">No hay ventas disponibles para cancelar</option>';
   return;
  }
- select.innerHTML=[...ventas].reverse().map(v=>
+
+ select.innerHTML=[...disponibles].reverse().map(v=>
   `<option value="${seguro(v.id)}">
    ${seguro(v.id)} - ${new Date(v.fecha).toLocaleString("es-MX")} - ${dinero(v.total)}
   </option>`
  ).join("");
 }
+ function cargarVentaCancelacion(){
+ const id=document.getElementById("ventaCancelacion").value;
+ const contenedor=document.getElementById("detalleCancelacion");
+
+ const venta=ventas.find(v=>v.id===id);
+
+ if(!venta){
+  contenedor.innerHTML="<p>No se encontró la venta.</p>";
+  return;
+ }
+
+ let html=`
+  <hr>
+  <h3>Detalle de la venta</h3>
+  <p>Venta: ${seguro(venta.id)}</p>
+  <p>Fecha: ${new Date(venta.fecha).toLocaleString("es-MX")}</p>
+  <p>Total original: <b>${dinero(venta.total)}</b></p>
+  <h4>Productos:</h4>
+ `;
+
+ (venta.productos||[]).forEach(p=>{
+  html+=`
+   <p>${seguro(p.nombre)} - ${p.cantidad} x ${dinero(p.precio)}</p>
+  `;
+ });
+
+ html+=`
+  <label>Motivo de cancelación</label>
+  <input id="motivoCancelacion" placeholder="Ej. Error de captura o solicitud del cliente">
+  <button class="danger" onclick="registrarCancelacion('${seguro(venta.id)}')">
+   Confirmar cancelación
+  </button>
+ `;
+
+ contenedor.innerHTML=html;
+ }
+ function registrarCancelacion(id){
+ const venta=ventas.find(v=>v.id===id);
+
+ if(!venta){
+  alert("No se encontró la venta.");
+  return;
+ }
+
+ if(cancelaciones.some(c=>c.ventaId===id)){
+  alert("Esta venta ya fue cancelada.");
+  return;
+ }
+
+ const motivo=document.getElementById("motivoCancelacion").value.trim();
+
+ if(!motivo){
+  alert("Escribe el motivo de cancelación.");
+  return;
+ }
+
+ let lineas=[];
+ let totalReintegrado=0;
+
+ (venta.productos||[]).forEach((p,i)=>{
+  const yaDevuelto=cantidadDevuelta(venta.id,i);
+  const pendiente=Number(p.cantidad)-yaDevuelto;
+
+  if(pendiente<=0)return;
+
+  const producto=buscarProductoVendido(p);
+
+  if(!producto){
+   alert("No se encontró en inventario: "+p.nombre);
+   lineas=[];
+   return;
+  }
+
+  lineas.push({
+   indice:i,
+   productoId:producto.id,
+   nombre:p.nombre,
+   cantidad:pendiente,
+   precio:Number(p.precio)
+  });
+
+  totalReintegrado+=pendiente*Number(p.precio);
+ });
+
+ if((venta.productos||[]).some((p,i)=>{
+  const pendiente=Number(p.cantidad)-cantidadDevuelta(venta.id,i);
+  return pendiente>0&&!buscarProductoVendido(p);
+ })){
+  return;
+ }
+
+ if(!confirm("¿Confirmas cancelar la venta "+id+"?")){
+  return;
+ }
+
+ lineas.forEach(linea=>{
+  const producto=productos.find(p=>p.id===linea.productoId);
+  if(producto)producto.stock+=linea.cantidad;
+ });
+
+ cancelaciones.push({
+  id:"C"+Date.now(),
+  ventaId:venta.id,
+  fecha:new Date().toISOString(),
+  motivo,
+  totalOriginal:Number(venta.total)||0,
+  totalReintegrado,
+  productos:lineas
+ });
+
+ guardar();
+ mostrarInventario();
+ mostrarSelectCancelaciones();
+ mostrarHistorialCancelaciones();
+
+ document.getElementById("detalleCancelacion").innerHTML="";
+
+ alert("Venta cancelada correctamente.\nLas existencias pendientes fueron reintegradas.");
+ }
+ function mostrarHistorialCancelaciones(){
+ const contenedor=document.getElementById("listaCancelaciones");
+
+ if(!cancelaciones.length){
+  contenedor.innerHTML="<p>No hay cancelaciones registradas.</p>";
+  return;
+ }
+
+ contenedor.innerHTML=[...cancelaciones].reverse().map(c=>{
+  const detalle=(c.productos||[]).map(p=>
+   `<p>${seguro(p.nombre)}: ${p.cantidad} x ${dinero(p.precio)}</p>`
+  ).join("");
+
+  return `
+   <div class="panel">
+    <h3>Cancelación ${seguro(c.id)}</h3>
+    <p>Venta: ${seguro(c.ventaId)}</p>
+    <p>Fecha: ${new Date(c.fecha).toLocaleString("es-MX")}</p>
+    <p>Motivo: ${seguro(c.motivo)}</p>
+    ${detalle}
+    <p><b>Total original: ${dinero(c.totalOriginal)}</b></p>
+    <p><b>Mercancía reintegrada: ${dinero(c.totalReintegrado)}</b></p>
+   </div>
+  `;
+ }).join("");
+ }
 
 function cantidadDevuelta(ventaId,indice){
  return devoluciones.reduce((s,d)=>{
@@ -738,16 +911,17 @@ function mostrarCorte(){
  const ventasDia=ventas.filter(v=>fechaLocal(v.fecha)===fecha);
  const gastosDia=gastos.filter(g=>fechaLocal(g.fecha)===fecha);
  const devolucionesDia=devoluciones.filter(d=>fechaLocal(d.fecha)===fecha);
+ const cancelacionesDia=cancelaciones.filter(c=>fechaLocal(c.fecha)===fecha);
 
  const numeroVentas=ventasDia.length;
  const totalVendido=ventasDia.reduce((s,v)=>s+Number(v.total),0);
  const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
  const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
  const efectivoNeto=efectivoRecibido-cambioEntregado;
- const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0);
+ const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0); 
  const totalDevoluciones=devolucionesDia.reduce((s,d)=>s+Number(d.total),0);
- const efectivoFinal=efectivoNeto-totalGastos-totalDevoluciones;
-
+const totalCancelaciones=cancelacionesDia.reduce((s,c)=>s+Number(c.totalReintegrado),0);
+const efectivoFinal=efectivoNeto-totalGastos-totalDevoluciones-totalCancelaciones;
  resultado.innerHTML=`
   <div class="panel">
    <h3>Resumen del día</h3>
@@ -765,6 +939,10 @@ function mostrarCorte(){
    <h3>Devoluciones</h3>
    <p>Número de devoluciones: ${devolucionesDia.length}</p>
    <p>Total devuelto: ${dinero(totalDevoluciones)}</p>
+   <hr>
+<h3>Cancelaciones</h3>
+<p>Número de cancelaciones: ${cancelacionesDia.length}</p>
+<p>Total reembolsado por cancelaciones: ${dinero(totalCancelaciones)}</p>
    <hr>
    <h2>Efectivo final en caja: ${dinero(efectivoFinal)}</h2>
    <p class="small">Cálculo: efectivo neto de ventas menos gastos y devoluciones.</p>
