@@ -40,6 +40,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="ver('entradas')">Entradas</button>
 <button onclick="ver('historial')">Historial de ventas</button>
 <button onclick="ver('gastos')">Gastos de caja</button>
+<button onclick="ver('devoluciones')">Devoluciones</button>
 <button onclick="ver('corte')">Corte de caja</button>
 </div>
 </div>
@@ -118,23 +119,34 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <section id="gastos" class="hidden">
 <div class="panel">
 <h2>Gastos de caja</h2>
-<p class="small">Registra las salidas de efectivo de tu negocio.</p>
-
 <label>Concepto del gasto</label>
 <input id="conceptoGasto" placeholder="Ej. Compra de bolsas">
-
 <label>Importe del gasto</label>
-<input id="importeGasto" type="number" min="0.01" step="0.01" placeholder="0.00">
-
+<input id="importeGasto" type="number" min="0.01" step="0.01">
 <label>Descripción (opcional)</label>
 <input id="descripcionGasto" placeholder="Detalles del gasto">
-
 <button class="green" onclick="registrarGasto()">Registrar gasto</button>
 </div>
-
 <div class="panel">
 <h3>Gastos registrados</h3>
 <div id="listaGastos"></div>
+</div>
+</section>
+
+<section id="devoluciones" class="hidden">
+<div class="panel">
+<h2>Devoluciones y cancelaciones</h2>
+<p>Selecciona la venta que deseas devolver.</p>
+
+<label>Venta</label>
+<select id="ventaDevolucion"></select>
+<button onclick="cargarVentaDevolucion()">Buscar venta</button>
+<div id="detalleDevolucion"></div>
+</div>
+
+<div class="panel">
+<h3>Historial de devoluciones</h3>
+<div id="listaDevoluciones"></div>
 </div>
 </section>
 
@@ -169,13 +181,20 @@ let productos=leer("puntomax_productos",[]).map((p,i)=>({
 }));
 
 let carrito=[];
-let ventas=leer("puntomax_ventas",[]);
+let ventas=leer("puntomax_ventas",[]).map((v,i)=>({
+ ...v,
+ id:v.id||("V"+i),
+ productos:Array.isArray(v.productos)?v.productos:[]
+}));
 let gastos=leer("puntomax_gastos",[]);
+let devoluciones=leer("puntomax_devoluciones",[]);
+let ventaSeleccionada=null;
 
 function guardar(){
  localStorage.setItem("puntomax_productos",JSON.stringify(productos));
  localStorage.setItem("puntomax_ventas",JSON.stringify(ventas));
  localStorage.setItem("puntomax_gastos",JSON.stringify(gastos));
+ localStorage.setItem("puntomax_devoluciones",JSON.stringify(devoluciones));
 }
 
 function dinero(n){
@@ -192,10 +211,7 @@ function seguro(s){
 function fechaLocal(fecha){
  const d=new Date(fecha);
  if(isNaN(d.getTime()))return "";
- const año=d.getFullYear();
- const mes=String(d.getMonth()+1).padStart(2,"0");
- const dia=String(d.getDate()).padStart(2,"0");
- return año+"-"+mes+"-"+dia;
+ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
 function fechaHoy(){
@@ -203,7 +219,7 @@ function fechaHoy(){
 }
 
 function ver(seccion){
- ["ventas","inventario","entradas","historial","gastos","corte"].forEach(id=>{
+ ["ventas","inventario","entradas","historial","gastos","devoluciones","corte"].forEach(id=>{
   document.getElementById(id).classList.toggle("hidden",id!==seccion);
  });
 
@@ -212,6 +228,12 @@ function ver(seccion){
  if(seccion==="ventas")mostrarVenta();
  if(seccion==="historial")mostrarHistorial();
  if(seccion==="gastos")mostrarGastos();
+
+ if(seccion==="devoluciones"){
+  mostrarSelectVentas();
+  mostrarHistorialDevoluciones();
+  document.getElementById("detalleDevolucion").innerHTML="";
+ }
 
  if(seccion==="corte"){
   document.getElementById("fechaCorte").value=fechaHoy();
@@ -241,16 +263,13 @@ function agregarProducto(){
  }
 
  productos.push({
-  id:"P"+Date.now(),
-  codigo,nombre,compra,precio,stock,minimo,categoria
+  id:"P"+Date.now(),codigo,nombre,compra,precio,stock,minimo,categoria
  });
 
  guardar();
-
  ["codigo","nombre","compra","precio","categoria"].forEach(id=>document.getElementById(id).value="");
  document.getElementById("stock").value="0";
  document.getElementById("minimo").value="5";
-
  mostrarInventario();
  alert("Producto guardado.");
 }
@@ -278,12 +297,10 @@ function editarStock(id){
  let p=productos.find(x=>x.id===id);
  let nuevo=prompt("Existencias actuales de "+p.nombre,p.stock);
  if(nuevo===null)return;
-
  if(!/^\d+$/.test(nuevo)){
   alert("Escribe una cantidad entera válida.");
   return;
  }
-
  p.stock=Number(nuevo);
  guardar();
  mostrarInventario();
@@ -396,7 +413,6 @@ function cantidad(i,n){
 
  item.cantidad+=n;
  if(item.cantidad<=0)carrito.splice(i,1);
-
  mostrarCarrito();
 }
 
@@ -415,7 +431,6 @@ function totalVenta(){
 function actualizarTotal(){
  let total=totalVenta();
  document.getElementById("total").textContent=dinero(total);
-
  let efectivo=Number(document.getElementById("efectivo").value)||0;
  document.getElementById("cambio").textContent=dinero(Math.max(0,efectivo-total));
 }
@@ -429,7 +444,6 @@ function cobrar(){
  let efectivo=Number(document.getElementById("efectivo").value);
 
  if(!carrito.length){alert("Carrito vacío.");return;}
-
  if(!Number.isFinite(efectivo)||efectivo<total){
   alert("El efectivo es insuficiente.");
   return;
@@ -449,18 +463,23 @@ function cobrar(){
  });
 
  ventas.push({
+  id:"V"+Date.now(),
   fecha:new Date().toISOString(),
   total,
   efectivo,
   cambio:efectivo-total,
   productos:carrito.map(item=>{
    let p=productos.find(x=>x.id===item.id);
-   return {nombre:p.nombre,cantidad:item.cantidad,precio:p.precio};
+   return {
+    productoId:p.id,
+    nombre:p.nombre,
+    cantidad:item.cantidad,
+    precio:p.precio
+   };
   })
  });
 
  guardar();
-
  alert("Venta realizada.\nTotal: "+dinero(total)+"\nCambio: "+dinero(efectivo-total));
 
  carrito=[];
@@ -479,7 +498,6 @@ function mostrarHistorial(){
 
  contenedor.innerHTML=[...ventas].reverse().map((v,i)=>{
   let fecha=new Date(v.fecha).toLocaleString("es-MX");
-
   let productosHTML=(v.productos||[]).map(p=>
    `<p>${seguro(p.nombre)} - ${p.cantidad} x ${dinero(p.precio)}</p>`
   ).join("");
@@ -503,11 +521,7 @@ function registrarGasto(){
  const importe=Number(document.getElementById("importeGasto").value);
  const descripcion=document.getElementById("descripcionGasto").value.trim();
 
- if(!concepto){
-  alert("Escribe el concepto del gasto.");
-  return;
- }
-
+ if(!concepto){alert("Escribe el concepto del gasto.");return;}
  if(!Number.isFinite(importe)||importe<=0){
   alert("Escribe un importe válido.");
   return;
@@ -516,17 +530,13 @@ function registrarGasto(){
  gastos.push({
   id:"G"+Date.now(),
   fecha:new Date().toISOString(),
-  concepto,
-  importe,
-  descripcion
+  concepto,importe,descripcion
  });
 
  guardar();
-
  document.getElementById("conceptoGasto").value="";
  document.getElementById("importeGasto").value="";
  document.getElementById("descripcionGasto").value="";
-
  mostrarGastos();
  alert("Gasto registrado correctamente.");
 }
@@ -541,65 +551,178 @@ function mostrarGastos(){
 
  contenedor.innerHTML=[...gastos].reverse().map(g=>`
   <div class="producto">
-   <span>
-    <b>${seguro(g.concepto)}</b><br>
-    ${new Date(g.fecha).toLocaleString("es-MX")}<br>
-    ${seguro(g.descripcion||"Sin descripción")}
-   </span>
+   <span><b>${seguro(g.concepto)}</b><br>
+   ${new Date(g.fecha).toLocaleString("es-MX")}<br>
+   ${seguro(g.descripcion||"Sin descripción")}</span>
    <b>${dinero(g.importe)}</b>
   </div>
  `).join("");
 }
 
-function mostrarCorte(){
- const fecha=document.getElementById("fechaCorte").value;
- const resultado=document.getElementById("resultadoCorte");
+function mostrarSelectVentas(){
+ const select=document.getElementById("ventaDevolucion");
 
- if(!fecha){
-  resultado.innerHTML="<p>Selecciona una fecha.</p>";
+ if(!ventas.length){
+  select.innerHTML='<option value="">No hay ventas registradas</option>';
   return;
  }
 
- const ventasDia=ventas.filter(v=>fechaLocal(v.fecha)===fecha);
- const gastosDia=gastos.filter(g=>fechaLocal(g.fecha)===fecha);
-
- const numeroVentas=ventasDia.length;
- const totalVendido=ventasDia.reduce((s,v)=>s+Number(v.total),0);
- const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
- const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
- const efectivoNeto=efectivoRecibido-cambioEntregado;
-
- const numeroGastos=gastosDia.length;
- const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0);
- const efectivoFinal=efectivoNeto-totalGastos;
-
- resultado.innerHTML=`
-  <div class="panel">
-   <h3>Resumen del día</h3>
-   <p>Fecha: ${fecha}</p>
-   <p>Número de ventas: ${numeroVentas}</p>
-   <p>Total vendido: <b>${dinero(totalVendido)}</b></p>
-   <p>Efectivo recibido: ${dinero(efectivoRecibido)}</p>
-   <p>Cambio entregado: ${dinero(cambioEntregado)}</p>
-   <h3>Efectivo neto de ventas: ${dinero(efectivoNeto)}</h3>
-
-   <hr>
-
-   <h3>Gastos de caja</h3>
-   <p>Número de gastos: ${numeroGastos}</p>
-   <p>Total de gastos: <b>${dinero(totalGastos)}</b></p>
-
-   <hr>
-
-   <h2>Efectivo final en caja: ${dinero(efectivoFinal)}</h2>
-   <p class="small">Cálculo: efectivo neto de ventas menos gastos registrados.</p>
-  </div>
- `;
+ select.innerHTML=[...ventas].reverse().map(v=>
+  `<option value="${seguro(v.id)}">
+   ${seguro(v.id)} - ${new Date(v.fecha).toLocaleString("es-MX")} - ${dinero(v.total)}
+  </option>`
+ ).join("");
 }
 
-mostrarInventario();
-mostrarVenta();
-mostrarCarrito();
-</script>
-</body>
-</html>
+function cantidadDevuelta(ventaId,indice){
+ return devoluciones.reduce((s,d)=>{
+  if(d.ventaId!==ventaId)return s;
+  return s+(d.productos||[]).reduce((a,p)=>{
+   return a+(p.indice===indice?Number(p.cantidad):0);
+  },0);
+ },0);
+}
+
+function buscarProductoVendido(p){
+ if(p.productoId){
+  const porId=productos.find(x=>x.id===p.productoId);
+  if(porId)return porId;
+ }
+ return productos.find(x=>x.nombre===p.nombre);
+}
+
+function cargarVentaDevolucion(){
+ const id=document.getElementById("ventaDevolucion").value;
+ ventaSeleccionada=ventas.find(v=>v.id===id);
+
+ if(!ventaSeleccionada){
+  document.getElementById("detalleDevolucion").innerHTML="<p>No se encontró la venta.</p>";
+  return;
+ }
+
+ mostrarDetalleDevolucion();
+}
+
+function mostrarDetalleDevolucion(){
+ const contenedor=document.getElementById("detalleDevolucion");
+ const venta=ventaSeleccionada;
+
+ if(!venta)return;
+
+ let html=`
+ <hr>
+ <h3>Detalle de la venta</h3>
+ <p>Fecha: ${new Date(venta.fecha).toLocaleString("es-MX")}</p>
+ <p>Total original: <b>${dinero(venta.total)}</b></p>
+ <h3>Selecciona las cantidades a devolver</h3>
+ `;
+
+ let disponibles=0;
+
+ (venta.productos||[]).forEach((p,i)=>{
+  const devueltos=cantidadDevuelta(venta.id,i);
+  const restante=Number(p.cantidad)-devueltos;
+  if(restante<=0)return;
+  disponibles++;
+
+  html+=`
+   <div class="producto">
+    <span>
+     <b>${seguro(p.nombre)}</b><br>
+     Precio: ${dinero(p.precio)}<br>
+     Vendidos: ${p.cantidad} | Ya devueltos: ${devueltos}<br>
+     Disponibles para devolución: ${restante}
+    </span>
+    <span style="min-width:90px">
+     <label>Cantidad</label>
+     <input id="devCantidad_${i}" type="number" min="0" max="${restante}" step="1" value="0">
+    </span>
+   </div>
+  `;
+ });
+
+ if(!disponibles){
+  contenedor.innerHTML=html+"<p>Esta venta ya fue devuelta completamente.</p>";
+  return;
+ }
+
+ html+=`
+  <label>Motivo de la devolución</label>
+  <input id="motivoDevolucion" placeholder="Ej. Producto dañado o cambio">
+  <button class="green" onclick="registrarDevolucion()">Registrar devolución</button>
+ `;
+ contenedor.innerHTML=html;
+}
+
+function registrarDevolucion(){
+ const venta=ventaSeleccionada;
+ if(!venta){alert("Primero selecciona una venta.");return;}
+
+ const motivo=document.getElementById("motivoDevolucion").value.trim();
+ if(!motivo){alert("Escribe el motivo de la devolución.");return;}
+
+ let lineas=[];
+ let total=0;
+
+ (venta.productos||[]).forEach((p,i)=>{
+  const campo=document.getElementById("devCantidad_"+i);
+  if(!campo)return;
+
+  const cantidad=Number(campo.value);
+  const restante=Number(p.cantidad)-cantidadDevuelta(venta.id,i);
+
+  if(!Number.isInteger(cantidad)||cantidad<0||cantidad>restante){
+   throw new Error("Cantidad inválida para "+p.nombre);
+  }
+
+  if(cantidad===0)return;
+
+  const producto=buscarProductoVendido(p);
+  if(!producto){
+   throw new Error("No se encontró en el inventario: "+p.nombre);
+  }
+
+  lineas.push({
+   indice:i,
+   productoId:producto.id,
+   nombre:p.nombre,
+   cantidad,
+   precio:Number(p.precio)
+  });
+
+  total+=cantidad*Number(p.precio);
+ });
+
+ if(!lineas.length){
+  alert("Selecciona al menos un producto para devolver.");
+  return;
+ }
+
+ if(!confirm("¿Confirmas la devolución por "+dinero(total)+"?")){
+  return;
+ }
+
+ lineas.forEach(linea=>{
+  const producto=productos.find(p=>p.id===linea.productoId);
+  producto.stock+=linea.cantidad;
+ });
+
+ devoluciones.push({
+  id:"D"+Date.now(),
+  ventaId:venta.id,
+  fecha:new Date().toISOString(),
+  motivo,
+  total,
+  productos:lineas
+ });
+
+ guardar();
+ mostrarInventario();
+ mostrarHistorialDevoluciones();
+ mostrarDetalleDevolucion();
+
+ alert("Devolución registrada.\nImporte: "+dinero(total)+"\nLas existencias fueron actualizadas.");
+}
+
+function mostrarHistorialDevoluciones(){
+ co
