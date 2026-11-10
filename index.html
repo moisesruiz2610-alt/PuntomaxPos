@@ -53,13 +53,11 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="buscarCodigo()">Buscar producto</button>
 <div id="mensaje" class="small"></div>
 </div>
-
 <div class="panel">
 <h3>Productos disponibles</h3>
 <input id="buscar" placeholder="Buscar por nombre o código">
 <div id="listaVenta"></div>
 </div>
-
 <div class="panel">
 <h3>Carrito</h3>
 <div id="carrito">Carrito vacío.</div>
@@ -90,7 +88,6 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <input id="categoria" placeholder="Ej. Abarrotes">
 <button onclick="agregarProducto()">Guardar producto</button>
 </div>
-
 <div class="panel">
 <h3>Productos registrados</h3>
 <input id="buscarInventario" placeholder="Buscar producto">
@@ -137,13 +134,11 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <div class="panel">
 <h2>Devoluciones y cancelaciones</h2>
 <p>Selecciona la venta que deseas devolver.</p>
-
 <label>Venta</label>
 <select id="ventaDevolucion"></select>
 <button onclick="cargarVentaDevolucion()">Buscar venta</button>
 <div id="detalleDevolucion"></div>
 </div>
-
 <div class="panel">
 <h3>Historial de devoluciones</h3>
 <div id="listaDevoluciones"></div>
@@ -222,19 +217,16 @@ function ver(seccion){
  ["ventas","inventario","entradas","historial","gastos","devoluciones","corte"].forEach(id=>{
   document.getElementById(id).classList.toggle("hidden",id!==seccion);
  });
-
  if(seccion==="inventario")mostrarInventario();
  if(seccion==="entradas")mostrarSelect();
  if(seccion==="ventas")mostrarVenta();
  if(seccion==="historial")mostrarHistorial();
  if(seccion==="gastos")mostrarGastos();
-
  if(seccion==="devoluciones"){
   mostrarSelectVentas();
   mostrarHistorialDevoluciones();
   document.getElementById("detalleDevolucion").innerHTML="";
  }
-
  if(seccion==="corte"){
   document.getElementById("fechaCorte").value=fechaHoy();
   mostrarCorte();
@@ -256,16 +248,13 @@ function agregarProducto(){
   alert("Revisa los datos del producto.");
   return;
  }
-
  if(codigo&&productos.some(p=>p.codigo===codigo)){
   alert("Ese código ya está registrado.");
   return;
  }
-
  productos.push({
   id:"P"+Date.now(),codigo,nombre,compra,precio,stock,minimo,categoria
  });
-
  guardar();
  ["codigo","nombre","compra","precio","categoria"].forEach(id=>document.getElementById(id).value="");
  document.getElementById("stock").value="0";
@@ -277,7 +266,6 @@ function agregarProducto(){
 function mostrarInventario(){
  let q=document.getElementById("buscarInventario").value.toLowerCase();
  let html="";
-
  productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
  .forEach(p=>{
   html+=`<div class="producto">
@@ -288,7 +276,6 @@ function mostrarInventario(){
   <button onclick="editarStock('${p.id}')">Ajustar</button>
   </div>`;
  });
-
  document.getElementById("listaInventario").innerHTML=html||"No hay productos.";
  mostrarSelect();
 }
@@ -318,12 +305,10 @@ function entradaMercancia(){
  let id=document.getElementById("productoEntrada").value;
  let cantidad=Number(document.getElementById("cantidadEntrada").value);
  let p=productos.find(x=>x.id===id);
-
  if(!p||!Number.isInteger(cantidad)||cantidad<=0){
   alert("Selecciona un producto y una cantidad válida.");
   return;
  }
-
  p.stock+=cantidad;
  guardar();
  document.getElementById("cantidadEntrada").value="";
@@ -335,12 +320,10 @@ function buscarCodigo(){
  let codigo=document.getElementById("scanner").value.trim();
  let p=productos.find(x=>x.codigo===codigo);
  document.getElementById("scanner").value="";
-
  if(!p){
   document.getElementById("mensaje").textContent="Producto no encontrado. Regístralo en Inventario.";
   return;
  }
-
  agregarCarrito(p.id);
  document.getElementById("mensaje").textContent="Producto agregado: "+p.nombre;
 }
@@ -355,24 +338,19 @@ document.getElementById("scanner").addEventListener("keydown",e=>{
 function agregarCarrito(id){
  let p=productos.find(x=>x.id===id);
  if(!p)return;
-
  let item=carrito.find(x=>x.id===id);
  let cantidad=item?item.cantidad:0;
-
  if(cantidad>=p.stock){
   alert("No hay existencias suficientes.");
   return;
  }
-
  if(item)item.cantidad++;
  else carrito.push({id,cantidad:1});
-
  mostrarCarrito();
 }
 
 function mostrarVenta(){
  let q=document.getElementById("buscar").value.toLowerCase();
-
  document.getElementById("listaVenta").innerHTML=
  productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
  .map(p=>`<div class="producto">
@@ -383,11 +361,9 @@ function mostrarVenta(){
 
 function mostrarCarrito(){
  let html="";
-
  carrito.forEach((item,i)=>{
   let p=productos.find(x=>x.id===item.id);
   if(!p)return;
-
   html+=`<div class="producto">
   <span>${seguro(p.nombre)}<br>${item.cantidad} x ${dinero(p.precio)}</span>
   <div>
@@ -396,7 +372,6 @@ function mostrarCarrito(){
   <button class="danger" onclick="quitar(${i})">X</button>
   </div></div>`;
  });
-
  document.getElementById("carrito").innerHTML=html||"Carrito vacío.";
  actualizarTotal();
  mostrarVenta();
@@ -405,12 +380,10 @@ function mostrarCarrito(){
 function cantidad(i,n){
  let item=carrito[i];
  let p=productos.find(x=>x.id===item.id);
-
  if(n>0&&item.cantidad>=p.stock){
   alert("No hay más existencias.");
   return;
  }
-
  item.cantidad+=n;
  if(item.cantidad<=0)carrito.splice(i,1);
  mostrarCarrito();
@@ -442,13 +415,11 @@ document.getElementById("buscarInventario").addEventListener("input",mostrarInve
 function cobrar(){
  let total=totalVenta();
  let efectivo=Number(document.getElementById("efectivo").value);
-
  if(!carrito.length){alert("Carrito vacío.");return;}
  if(!Number.isFinite(efectivo)||efectivo<total){
   alert("El efectivo es insuficiente.");
   return;
  }
-
  for(let item of carrito){
   let p=productos.find(x=>x.id===item.id);
   if(!p||p.stock<item.cantidad){
@@ -456,12 +427,10 @@ function cobrar(){
    return;
   }
  }
-
  carrito.forEach(item=>{
   let p=productos.find(x=>x.id===item.id);
   p.stock-=item.cantidad;
  });
-
  ventas.push({
   id:"V"+Date.now(),
   fecha:new Date().toISOString(),
@@ -478,10 +447,8 @@ function cobrar(){
    };
   })
  });
-
  guardar();
  alert("Venta realizada.\nTotal: "+dinero(total)+"\nCambio: "+dinero(efectivo-total));
-
  carrito=[];
  document.getElementById("efectivo").value="";
  mostrarCarrito();
@@ -490,18 +457,15 @@ function cobrar(){
 
 function mostrarHistorial(){
  const contenedor=document.getElementById("listaHistorial");
-
  if(ventas.length===0){
   contenedor.innerHTML="<p>No hay ventas registradas.</p>";
   return;
  }
-
  contenedor.innerHTML=[...ventas].reverse().map((v,i)=>{
   let fecha=new Date(v.fecha).toLocaleString("es-MX");
   let productosHTML=(v.productos||[]).map(p=>
    `<p>${seguro(p.nombre)} - ${p.cantidad} x ${dinero(p.precio)}</p>`
   ).join("");
-
   return `
    <div class="panel">
     <h3>Venta ${ventas.length-i}</h3>
@@ -520,19 +484,16 @@ function registrarGasto(){
  const concepto=document.getElementById("conceptoGasto").value.trim();
  const importe=Number(document.getElementById("importeGasto").value);
  const descripcion=document.getElementById("descripcionGasto").value.trim();
-
  if(!concepto){alert("Escribe el concepto del gasto.");return;}
  if(!Number.isFinite(importe)||importe<=0){
   alert("Escribe un importe válido.");
   return;
  }
-
  gastos.push({
   id:"G"+Date.now(),
   fecha:new Date().toISOString(),
   concepto,importe,descripcion
  });
-
  guardar();
  document.getElementById("conceptoGasto").value="";
  document.getElementById("importeGasto").value="";
@@ -543,12 +504,10 @@ function registrarGasto(){
 
 function mostrarGastos(){
  const contenedor=document.getElementById("listaGastos");
-
  if(gastos.length===0){
   contenedor.innerHTML="<p>No hay gastos registrados.</p>";
   return;
  }
-
  contenedor.innerHTML=[...gastos].reverse().map(g=>`
   <div class="producto">
    <span><b>${seguro(g.concepto)}</b><br>
@@ -561,12 +520,10 @@ function mostrarGastos(){
 
 function mostrarSelectVentas(){
  const select=document.getElementById("ventaDevolucion");
-
  if(!ventas.length){
   select.innerHTML='<option value="">No hay ventas registradas</option>';
   return;
  }
-
  select.innerHTML=[...ventas].reverse().map(v=>
   `<option value="${seguro(v.id)}">
    ${seguro(v.id)} - ${new Date(v.fecha).toLocaleString("es-MX")} - ${dinero(v.total)}
@@ -594,19 +551,39 @@ function buscarProductoVendido(p){
 function cargarVentaDevolucion(){
  const id=document.getElementById("ventaDevolucion").value;
  ventaSeleccionada=ventas.find(v=>v.id===id);
-
  if(!ventaSeleccionada){
   document.getElementById("detalleDevolucion").innerHTML="<p>No se encontró la venta.</p>";
   return;
  }
-
  mostrarDetalleDevolucion();
+}
+
+/* NUEVO: calcula el importe de devolución en tiempo real */
+function actualizarTotalDevolucion(){
+ const venta=ventaSeleccionada;
+ const salida=document.getElementById("totalDevolucion");
+ if(!venta||!salida)return;
+
+ let total=0;
+
+ (venta.productos||[]).forEach((p,i)=>{
+  const campo=document.getElementById("devCantidad_"+i);
+  if(!campo)return;
+
+  const cantidad=Number(campo.value);
+  const restante=Number(p.cantidad)-cantidadDevuelta(venta.id,i);
+
+  if(Number.isInteger(cantidad)&&cantidad>=0&&cantidad<=restante){
+   total+=cantidad*Number(p.precio);
+  }
+ });
+
+ salida.textContent=dinero(total);
 }
 
 function mostrarDetalleDevolucion(){
  const contenedor=document.getElementById("detalleDevolucion");
  const venta=ventaSeleccionada;
-
  if(!venta)return;
 
  let html=`
@@ -635,23 +612,28 @@ function mostrarDetalleDevolucion(){
     </span>
     <span style="min-width:90px">
      <label>Cantidad</label>
-     <input id="devCantidad_${i}" type="number" min="0" max="${restante}" step="1" value="0">
+     <input id="devCantidad_${i}" type="number" min="0" max="${restante}" step="1" value="0" oninput="actualizarTotalDevolucion()">
     </span>
    </div>
   `;
  });
 
- if(!disponibles){
+if(!disponibles){
   contenedor.innerHTML=html+"<p>Esta venta ya fue devuelta completamente.</p>";
   return;
  }
 
  html+=`
+  <div class="panel">
+   <h3>Total a devolver: <strong class="total" id="totalDevolucion">$0.00</strong></h3>
+   <p class="small">El importe se actualiza al cambiar las cantidades.</p>
+  </div>
   <label>Motivo de la devolución</label>
   <input id="motivoDevolucion" placeholder="Ej. Producto dañado o cambio">
   <button class="green" onclick="registrarDevolucion()">Registrar devolución</button>
  `;
  contenedor.innerHTML=html;
+ actualizarTotalDevolucion();
 }
 
 function registrarDevolucion(){
@@ -674,7 +656,6 @@ function registrarDevolucion(){
   if(!Number.isInteger(cantidad)||cantidad<0||cantidad>restante){
    throw new Error("Cantidad inválida para "+p.nombre);
   }
-
   if(cantidad===0)return;
 
   const producto=buscarProductoVendido(p);
@@ -689,7 +670,6 @@ function registrarDevolucion(){
    cantidad,
    precio:Number(p.precio)
   });
-
   total+=cantidad*Number(p.precio);
  });
 
@@ -721,22 +701,19 @@ function registrarDevolucion(){
  mostrarHistorialDevoluciones();
  mostrarDetalleDevolucion();
 
-alert("Devolución registrada.\nImporte: "+dinero(total)+"\nLas existencias fueron actualizadas.");
+ alert("Devolución registrada.\nImporte: "+dinero(total)+"\nLas existencias fueron actualizadas.");
 }
 
 function mostrarHistorialDevoluciones(){
  const contenedor=document.getElementById("listaDevoluciones");
-
  if(!devoluciones.length){
   contenedor.innerHTML="<p>No hay devoluciones registradas.</p>";
   return;
  }
-
  contenedor.innerHTML=[...devoluciones].reverse().map(d=>{
   const detalle=(d.productos||[]).map(p=>
    `<p>${seguro(p.nombre)}: ${p.cantidad} x ${dinero(p.precio)}</p>`
   ).join("");
-
   return `
    <div class="panel">
     <h3>Devolución ${seguro(d.id)}</h3>
@@ -753,7 +730,6 @@ function mostrarHistorialDevoluciones(){
 function mostrarCorte(){
  const fecha=document.getElementById("fechaCorte").value;
  const resultado=document.getElementById("resultadoCorte");
-
  if(!fecha){
   resultado.innerHTML="<p>Selecciona una fecha.</p>";
   return;
@@ -768,7 +744,6 @@ function mostrarCorte(){
  const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
  const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
  const efectivoNeto=efectivoRecibido-cambioEntregado;
-
  const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0);
  const totalDevoluciones=devolucionesDia.reduce((s,d)=>s+Number(d.total),0);
  const efectivoFinal=efectivoNeto-totalGastos-totalDevoluciones;
