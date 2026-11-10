@@ -39,6 +39,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="ver('inventario')">Inventario</button>
 <button onclick="ver('entradas')">Entradas</button>
 <button onclick="ver('historial')">Historial de ventas</button>
+<button onclick="ver('corte')">Corte de caja</button>
 </div>
 </div>
 
@@ -111,6 +112,18 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
     <div id="listaHistorial"></div>
   </div>
  </section>
+ <section id="corte" class="hidden">
+ <div class="panel">
+  <h2>Corte de caja</h2>
+
+  <label>Seleccionar fecha</label>
+  <input type="date" id="fechaCorte">
+
+  <button onclick="mostrarCorte()">Consultar corte</button>
+
+  <div id="resultadoCorte"></div>
+ </div>
+ </section>
 </main>
 
 <script>
@@ -152,7 +165,7 @@ function seguro(s){
 }
 
 function ver(seccion){
- ["ventas","inventario","entradas","historial"].forEach(id=>{
+ ["ventas","inventario","entradas","historial","corte"].forEach(id=>{
   document.getElementById(id).classList.toggle("hidden",id!==seccion);
  });
 
@@ -160,6 +173,10 @@ function ver(seccion){
  if(seccion==="entradas")mostrarSelect();
  if(seccion==="ventas")mostrarVenta();
  if(seccion==="historial")mostrarHistorial();
+ if(seccion==="corte"){
+  document.getElementById("fechaCorte").value=new Date().toLocaleDateString("en-CA");
+  mostrarCorte();
+ }
 }
 
 function agregarProducto(){
@@ -414,6 +431,37 @@ function mostrarHistorial(){
   `;
  }).join("");
 }
+ function mostrarCorte(){
+ const fecha=document.getElementById("fechaCorte").value;
+ const resultado=document.getElementById("resultadoCorte");
+
+ if(!fecha){
+  resultado.innerHTML="<p>Selecciona una fecha.</p>";
+  return;
+ }
+
+ const ventasDia=ventas.filter(v=>{
+  return new Date(v.fecha).toLocaleDateString("en-CA")===fecha;
+ });
+
+ const numeroVentas=ventasDia.length;
+ const totalVendido=ventasDia.reduce((s,v)=>s+Number(v.total),0);
+ const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
+ const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
+ const efectivoNeto=efectivoRecibido-cambioEntregado;
+
+ resultado.innerHTML=`
+  <div class="panel">
+   <h3>Resumen del día</h3>
+   <p>Fecha: ${fecha}</p>
+   <p>Número de ventas: ${numeroVentas}</p>
+   <p>Total vendido: <b>${dinero(totalVendido)}</b></p>
+   <p>Efectivo recibido: ${dinero(efectivoRecibido)}</p>
+   <p>Cambio entregado: ${dinero(cambioEntregado)}</p>
+   <h3>Efectivo neto: ${dinero(efectivoNeto)}</h3>
+  </div>
+ `;
+ }
 </script>
 </body>
 </html>
