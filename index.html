@@ -10,122 +10,304 @@
 body{margin:0;font-family:Arial;background:#f1f4f9;color:#19375f}
 header{background:#173b70;color:white;padding:18px}
 header h1{margin:0}
-main{padding:15px;max-width:900px;margin:auto}
+main{padding:14px;max-width:950px;margin:auto}
 .panel{background:white;padding:16px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
-input,button{padding:12px;border-radius:7px;font-size:16px}
-input{border:1px solid #ccd3df;width:100%;margin:5px 0 12px}
-button{border:0;background:#173b70;color:white;cursor:pointer}
-.producto{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #eee;padding:12px 0}
-.producto button{padding:9px 13px}
-.total{font-size:26px;font-weight:bold;color:#173b70}
-.eliminar{background:#b42318}
+input,button,select{padding:12px;border-radius:7px;font-size:15px}
+input,select{border:1px solid #ccd3df;width:100%;margin:5px 0 12px}
+button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
+.danger{background:#b42318}
+.green{background:#16804a}
+.producto{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid #eee;padding:12px 0}
+.producto button{padding:9px}
+.total{font-size:27px;font-weight:bold}
+.small{color:#64748b;font-size:13px}
+.tabs{display:flex;gap:5px;flex-wrap:wrap}
+.tabs button{flex:1}
+.hidden{display:none}
 </style>
 </head>
 <body>
 <header>
 <h1>PuntoMax POS</h1>
-<p>Punto de venta e inventarios</p>
+<p>Ventas e inventarios</p>
 </header>
 
 <main>
 <div class="panel">
-<h2>Agregar producto</h2>
+<div class="tabs">
+<button onclick="ver('ventas')">Punto de venta</button>
+<button onclick="ver('inventario')">Inventario</button>
+<button onclick="ver('entradas')">Entradas</button>
+</div>
+</div>
+
+<section id="ventas">
+<div class="panel">
+<h2>Punto de venta</h2>
+<label>Escanear o escribir código de barras</label>
+<input id="scanner" placeholder="Escanea aquí y presiona Enter">
+<button onclick="buscarCodigo()">Buscar producto</button>
+<div id="mensaje" class="small"></div>
+</div>
+
+<div class="panel">
+<h3>Productos disponibles</h3>
+<input id="buscar" placeholder="Buscar por nombre o código">
+<div id="listaVenta"></div>
+</div>
+
+<div class="panel">
+<h3>Carrito</h3>
+<div id="carrito">Carrito vacío.</div>
+<p>Total: <strong class="total" id="total">$0.00</strong></p>
+<label>Efectivo recibido</label>
+<input id="efectivo" type="number" min="0" step="0.01">
+<p>Cambio: <strong id="cambio">$0.00</strong></p>
+<button class="green" onclick="cobrar()">Cobrar venta</button>
+</div>
+</section>
+
+<section id="inventario" class="hidden">
+<div class="panel">
+<h2>Registrar producto</h2>
+<label>Código de barras</label>
+<input id="codigo" placeholder="Escanea o escribe el código">
 <label>Nombre del producto</label>
-<input id="nombre" placeholder="Ej. Coca Cola 600 ml">
-<label>Precio ($)</label>
-<input id="precio" type="number" min="0.01" step="0.01" placeholder="Ej. 20">
+<input id="nombre" placeholder="Nombre">
+<label>Precio de compra</label>
+<input id="compra" type="number" min="0" step="0.01">
+<label>Precio de venta</label>
+<input id="precio" type="number" min="0.01" step="0.01">
+<label>Existencias iniciales</label>
+<input id="stock" type="number" min="0" step="1" value="0">
+<label>Stock mínimo</label>
+<input id="minimo" type="number" min="0" step="1" value="5">
+<label>Categoría</label>
+<input id="categoria" placeholder="Ej. Abarrotes">
 <button onclick="agregarProducto()">Guardar producto</button>
 </div>
 
 <div class="panel">
-<h2>Productos registrados</h2>
-<div id="productos"></div>
+<h3>Productos registrados</h3>
+<input id="buscarInventario" placeholder="Buscar producto">
+<div id="listaInventario"></div>
 </div>
+</section>
 
+<section id="entradas" class="hidden">
 <div class="panel">
-<h2>Carrito de venta</h2>
-<div id="carrito">No hay productos agregados.</div>
-<p>Total: <span class="total" id="total">$0.00</span></p>
-<label>Efectivo recibido ($)</label>
-<input id="efectivo" type="number" min="0" step="0.01">
-<p>Cambio: <strong id="cambio">$0.00</strong></p>
-<button onclick="cobrar()">Cobrar venta</button>
+<h2>Entrada de mercancía</h2>
+<label>Seleccionar producto</label>
+<select id="productoEntrada"></select>
+<label>Cantidad recibida</label>
+<input id="cantidadEntrada" type="number" min="1" step="1" placeholder="Cantidad">
+<button onclick="entradaMercancia()">Registrar entrada</button>
 </div>
+</section>
 </main>
 
 <script>
-function cargarDatos(clave, defecto){
+function leer(clave,defecto){
  try{
-  const dato=localStorage.getItem(clave);
-  return dato ? JSON.parse(dato) : defecto;
+  const x=localStorage.getItem(clave);
+  return x?JSON.parse(x):defecto;
  }catch(e){return defecto;}
 }
 
-let productos=cargarDatos("puntomax_productos",[]);
-let carrito=[];
+let productos=leer("puntomax_productos",[]).map((p,i)=>({
+ id:p.id||("P"+Date.now()+i),
+ codigo:p.codigo||"",
+ nombre:p.nombre||"",
+ compra:Number(p.compra)||0,
+ precio:Number(p.precio)||0,
+ stock:Number(p.stock)||0,
+ minimo:Number(p.minimo)||5,
+ categoria:p.categoria||"General"
+}));
 
-function guardarProductos(){
+let carrito=[];
+let ventas=leer("puntomax_ventas",[]);
+
+function guardar(){
  localStorage.setItem("puntomax_productos",JSON.stringify(productos));
+ localStorage.setItem("puntomax_ventas",JSON.stringify(ventas));
 }
 
 function dinero(n){
- return "$"+n.toFixed(2);
+ return "$"+Number(n).toFixed(2);
+}
+
+function seguro(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",
+ '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function ver(seccion){
+ ["ventas","inventario","entradas"].forEach(id=>{
+  document.getElementById(id).classList.toggle("hidden",id!==seccion);
+ });
+ if(seccion==="inventario")mostrarInventario();
+ if(seccion==="entradas")mostrarSelect();
+ if(seccion==="ventas")mostrarVenta();
 }
 
 function agregarProducto(){
+ let codigo=document.getElementById("codigo").value.trim();
  let nombre=document.getElementById("nombre").value.trim();
- let precio=parseFloat(document.getElementById("precio").value);
+ let compra=Number(document.getElementById("compra").value)||0;
+ let precio=Number(document.getElementById("precio").value);
+ let stock=Number(document.getElementById("stock").value);
+ let minimo=Number(document.getElementById("minimo").value);
+ let categoria=document.getElementById("categoria").value.trim()||"General";
 
- if(!nombre || !Number.isFinite(precio) || precio<=0){
-  alert("Escribe un nombre y un precio válido.");
+ if(!nombre||!Number.isFinite(precio)||precio<=0||
+ !Number.isInteger(stock)||stock<0||
+ !Number.isInteger(minimo)||minimo<0||compra<0){
+  alert("Revisa los datos del producto.");
   return;
  }
 
- productos.push({nombre,precio});
- guardarProductos();
- document.getElementById("nombre").value="";
- document.getElementById("precio").value="";
- mostrarProductos();
- alert("Producto guardado correctamente.");
+ if(codigo&&productos.some(p=>p.codigo===codigo)){
+  alert("Ese código ya está registrado.");
+  return;
+ }
+
+ productos.push({
+  id:"P"+Date.now(),
+  codigo,nombre,compra,precio,stock,minimo,categoria
+ });
+ guardar();
+ ["codigo","nombre","compra","precio","categoria"].forEach(id=>document.getElementById(id).value="");
+ document.getElementById("stock").value="0";
+ document.getElementById("minimo").value="5";
+ mostrarInventario();
+ alert("Producto guardado.");
 }
 
-function mostrarProductos(){
+function mostrarInventario(){
+ let q=document.getElementById("buscarInventario").value.toLowerCase();
  let html="";
- productos.forEach((p,i)=>{
+ productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
+ .forEach(p=>{
   html+=`<div class="producto">
-  <span>${p.nombre}<br>${dinero(p.precio)}</span>
-  <button onclick="agregarCarrito(${i})">Agregar</button>
+  <span><b>${seguro(p.nombre)}</b><br>
+  Código: ${seguro(p.codigo||"Sin código")}<br>
+  Venta: ${dinero(p.precio)} | Existencias: <b>${p.stock}</b><br>
+  <span class="small">${p.stock<=p.minimo?"⚠️ Stock bajo":"Stock normal"}</span></span>
+  <button onclick="editarStock('${p.id}')">Ajustar</button>
   </div>`;
  });
- document.getElementById("productos").innerHTML=html || "Todavía no hay productos.";
+ document.getElementById("listaInventario").innerHTML=html||"No hay productos.";
+ mostrarSelect();
 }
 
-function agregarCarrito(i){
- let item=carrito.find(x=>x.indice===i);
+function editarStock(id){
+ let p=productos.find(x=>x.id===id);
+ let nuevo=prompt("Existencias actuales de "+p.nombre,p.stock);
+ if(nuevo===null)return;
+ if(!/^\d+$/.test(nuevo)){
+  alert("Escribe una cantidad entera válida.");
+  return;
+ }
+ p.stock=Number(nuevo);
+ guardar();
+ mostrarInventario();
+ mostrarVenta();
+}
+
+function mostrarSelect(){
+ let s=document.getElementById("productoEntrada");
+ s.innerHTML=productos.map(p=>
+ `<option value="${seguro(p.id)}">${seguro(p.nombre)} (${p.stock} disponibles)</option>`
+ ).join("");
+}
+
+function entradaMercancia(){
+ let id=document.getElementById("productoEntrada").value;
+ let cantidad=Number(document.getElementById("cantidadEntrada").value);
+ let p=productos.find(x=>x.id===id);
+ if(!p||!Number.isInteger(cantidad)||cantidad<=0){
+  alert("Selecciona un producto y una cantidad válida.");
+  return;
+ }
+ p.stock+=cantidad;
+ guardar();
+ document.getElementById("cantidadEntrada").value="";
+ mostrarInventario();
+ alert("Entrada registrada correctamente.");
+}
+
+function buscarCodigo(){
+ let codigo=document.getElementById("scanner").value.trim();
+ let p=productos.find(x=>x.codigo===codigo);
+ document.getElementById("scanner").value="";
+ if(!p){
+  document.getElementById("mensaje").textContent="Producto no encontrado. Regístralo en Inventario.";
+  return;
+ }
+ agregarCarrito(p.id);
+ document.getElementById("mensaje").textContent="Producto agregado: "+p.nombre;
+}
+
+document.getElementById("scanner").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){
+  e.preventDefault();
+  buscarCodigo();
+ }
+});
+
+function agregarCarrito(id){
+ let p=productos.find(x=>x.id===id);
+ if(!p)return;
+ let item=carrito.find(x=>x.id===id);
+ let cantidad=item?item.cantidad:0;
+ if(cantidad>=p.stock){
+  alert("No hay existencias suficientes.");
+  return;
+ }
  if(item)item.cantidad++;
- else carrito.push({indice:i,cantidad:1});
+ else carrito.push({id,cantidad:1});
  mostrarCarrito();
+}
+
+function mostrarVenta(){
+ let q=document.getElementById("buscar").value.toLowerCase();
+ document.getElementById("listaVenta").innerHTML=
+ productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
+ .map(p=>`<div class="producto">
+ <span>${seguro(p.nombre)}<br>${dinero(p.precio)} | Stock: ${p.stock}</span>
+ <button onclick="agregarCarrito('${p.id}')">Agregar</button>
+ </div>`).join("")||"No hay productos.";
 }
 
 function mostrarCarrito(){
  let html="";
  carrito.forEach((item,i)=>{
-  let p=productos[item.indice];
+  let p=productos.find(x=>x.id===item.id);
   html+=`<div class="producto">
-  <span>${p.nombre}<br>${item.cantidad} x ${dinero(p.precio)}</span>
+  <span>${seguro(p.nombre)}<br>${item.cantidad} x ${dinero(p.precio)}</span>
   <div>
-  <button onclick="cambiarCantidad(${i},1)">+</button>
-  <button onclick="cambiarCantidad(${i},-1)">-</button>
-  <button class="eliminar" onclick="quitar(${i})">X</button>
+  <button onclick="cantidad(${i},1)">+</button>
+  <button onclick="cantidad(${i},-1)">-</button>
+  <button class="danger" onclick="quitar(${i})">X</button>
   </div></div>`;
  });
- document.getElementById("carrito").innerHTML=html || "No hay productos agregados.";
+ document.getElementById("carrito").innerHTML=html||"Carrito vacío.";
  actualizarTotal();
+ mostrarVenta();
 }
 
-function cambiarCantidad(i,n){
- carrito[i].cantidad+=n;
- if(carrito[i].cantidad<=0)carrito.splice(i,1);
+function cantidad(i,n){
+ let item=carrito[i];
+ let p=productos.find(x=>x.id===item.id);
+ if(n>0&&item.cantidad>=p.stock){
+  alert("No hay más existencias.");
+  return;
+ }
+ item.cantidad+=n;
+ if(item.cantidad<=0)carrito.splice(i,1);
  mostrarCarrito();
 }
 
@@ -134,32 +316,66 @@ function quitar(i){
  mostrarCarrito();
 }
 
+function totalVenta(){
+ return carrito.reduce((s,item)=>{
+  let p=productos.find(x=>x.id===item.id);
+  return s+p.precio*item.cantidad;
+ },0);
+}
+
 function actualizarTotal(){
- let total=carrito.reduce((s,item)=>s+productos[item.indice].precio*item.cantidad,0);
+ let total=totalVenta();
  document.getElementById("total").textContent=dinero(total);
  let efectivo=Number(document.getElementById("efectivo").value)||0;
  document.getElementById("cambio").textContent=dinero(Math.max(0,efectivo-total));
 }
 
 document.getElementById("efectivo").addEventListener("input",actualizarTotal);
+document.getElementById("buscar").addEventListener("input",mostrarVenta);
+document.getElementById("buscarInventario").addEventListener("input",mostrarInventario);
 
 function cobrar(){
- let total=carrito.reduce((s,item)=>s+productos[item.indice].precio*item.cantidad,0);
+ let total=totalVenta();
  let efectivo=Number(document.getElementById("efectivo").value);
-
- if(!carrito.length){alert("El carrito está vacío.");return;}
+ if(!carrito.length){alert("Carrito vacío.");return;}
  if(!Number.isFinite(efectivo)||efectivo<total){
-  alert("El efectivo recibido es insuficiente.");
-  return;
+  alert("El efectivo es insuficiente.");return;
  }
 
- alert("Venta realizada. Cambio: "+dinero(efectivo-total));
+ for(let item of carrito){
+  let p=productos.find(x=>x.id===item.id);
+  if(!p||p.stock<item.cantidad){
+   alert("Existencias insuficientes de "+(p?p.nombre:"un producto"));
+   return;
+  }
+ }
+
+ carrito.forEach(item=>{
+  let p=productos.find(x=>x.id===item.id);
+  p.stock-=item.cantidad;
+ });
+
+ ventas.push({
+  fecha:new Date().toISOString(),
+  total,
+  efectivo,
+  cambio:efectivo-total,
+  productos:carrito.map(item=>{
+   let p=productos.find(x=>x.id===item.id);
+   return {nombre:p.nombre,cantidad:item.cantidad,precio:p.precio};
+  })
+ });
+
+ guardar();
+ alert("Venta realizada.\nTotal: "+dinero(total)+"\nCambio: "+dinero(efectivo-total));
  carrito=[];
  document.getElementById("efectivo").value="";
  mostrarCarrito();
+ mostrarInventario();
 }
 
-mostrarProductos();
+mostrarInventario();
+mostrarVenta();
 mostrarCarrito();
 </script>
 </body>
