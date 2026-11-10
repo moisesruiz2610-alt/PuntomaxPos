@@ -543,6 +543,9 @@ function mostrarGastos(){
 function mostrarSelectCancelaciones(){
  const select=document.getElementById("ventaCancelacion");
 
+ console.log("VENTAS:",ventas);
+ console.log("CANCELACIONES:",cancelaciones);
+
  const disponibles=ventas.filter(v=>
   !cancelaciones.some(c=>c.ventaId===v.id)
  );
