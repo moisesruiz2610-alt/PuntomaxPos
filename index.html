@@ -27,12 +27,14 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 </style>
 </head>
 <body>
+
 <header>
 <h1>PuntoMax POS</h1>
 <p>Ventas e inventarios</p>
 </header>
 
 <main>
+
 <div class="panel">
 <div class="tabs">
 <button onclick="ver('ventas')">Punto de venta</button>
@@ -53,11 +55,13 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="buscarCodigo()">Buscar producto</button>
 <div id="mensaje" class="small"></div>
 </div>
+
 <div class="panel">
 <h3>Productos disponibles</h3>
 <input id="buscar" placeholder="Buscar por nombre o código">
 <div id="listaVenta"></div>
 </div>
+
 <div class="panel">
 <h3>Carrito</h3>
 <div id="carrito">Carrito vacío.</div>
@@ -88,6 +92,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <input id="categoria" placeholder="Ej. Abarrotes">
 <button onclick="agregarProducto()">Guardar producto</button>
 </div>
+
 <div class="panel">
 <h3>Productos registrados</h3>
 <input id="buscarInventario" placeholder="Buscar producto">
@@ -124,6 +129,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <input id="descripcionGasto" placeholder="Detalles del gasto">
 <button class="green" onclick="registrarGasto()">Registrar gasto</button>
 </div>
+
 <div class="panel">
 <h3>Gastos registrados</h3>
 <div id="listaGastos"></div>
@@ -132,30 +138,28 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 
 <section id="devoluciones" class="hidden">
 <div class="panel">
- <h2>Cancelar venta completa</h2>
- <p>Selecciona la venta que deseas cancelar.</p>
-
- <label>Venta</label>
- <select id="ventaCancelacion"></select>
-
- <button class="danger" onclick="cargarVentaCancelacion()">
-  Buscar venta para cancelar
- </button>
-
- <div id="detalleCancelacion"></div>
+<h2>Cancelar venta completa</h2>
+<p>Selecciona la venta que deseas cancelar.</p>
+<label>Venta</label>
+<select id="ventaCancelacion"></select>
+<button class="danger" onclick="cargarVentaCancelacion()">Buscar venta para cancelar</button>
+<div id="detalleCancelacion"></div>
 </div>
 
 <div class="panel">
- <h3>Historial de cancelaciones</h3>
- <div id="listaCancelaciones"></div>
+<h3>Historial de cancelaciones</h3>
+<div id="listaCancelaciones"></div>
 </div>
-<h2>Devoluciones y cancelaciones</h2>
+
+<div class="panel">
+<h2>Devoluciones</h2>
 <p>Selecciona la venta que deseas devolver.</p>
 <label>Venta</label>
 <select id="ventaDevolucion"></select>
 <button onclick="cargarVentaDevolucion()">Buscar venta</button>
 <div id="detalleDevolucion"></div>
 </div>
+
 <div class="panel">
 <h3>Historial de devoluciones</h3>
 <div id="listaDevoluciones"></div>
@@ -171,6 +175,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <div id="resultadoCorte"></div>
 </div>
 </section>
+
 </main>
 
 <script>
@@ -178,7 +183,9 @@ function leer(clave,defecto){
  try{
   const x=localStorage.getItem(clave);
   return x?JSON.parse(x):defecto;
- }catch(e){return defecto;}
+ }catch(e){
+  return defecto;
+ }
 }
 
 let productos=leer("puntomax_productos",[]).map((p,i)=>({
@@ -193,11 +200,13 @@ let productos=leer("puntomax_productos",[]).map((p,i)=>({
 }));
 
 let carrito=[];
+
 let ventas=leer("puntomax_ventas",[]).map((v,i)=>({
  ...v,
  id:v.id||("V"+i),
  productos:Array.isArray(v.productos)?v.productos:[]
 }));
+
 let gastos=leer("puntomax_gastos",[]);
 let devoluciones=leer("puntomax_devoluciones",[]);
 let cancelaciones=leer("puntomax_cancelaciones",[]);
@@ -212,13 +221,13 @@ function guardar(){
 }
 
 function dinero(n){
- return "$"+Number(n).toFixed(2);
+ return "$"+(Number(n)||0).toFixed(2);
 }
 
 function seguro(s){
- return String(s).replace(/[&<>"']/g,c=>({
- "&":"&amp;","<":"&lt;",">":"&gt;",
- '"':"&quot;","'":"&#39;"
+ return String(s??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
  }[c]));
 }
 
@@ -236,24 +245,29 @@ function ver(seccion){
  ["ventas","inventario","entradas","historial","gastos","devoluciones","corte"].forEach(id=>{
   document.getElementById(id).classList.toggle("hidden",id!==seccion);
  });
+
  if(seccion==="inventario")mostrarInventario();
  if(seccion==="entradas")mostrarSelect();
  if(seccion==="ventas")mostrarVenta();
  if(seccion==="historial")mostrarHistorial();
  if(seccion==="gastos")mostrarGastos();
+
  if(seccion==="devoluciones"){
- mostrarSelectVentas();
- mostrarHistorialDevoluciones();
- mostrarSelectCancelaciones();
- mostrarHistorialCancelaciones();
- document.getElementById("detalleDevolucion").innerHTML="";
- document.getElementById("detalleCancelacion").innerHTML="";
+  mostrarSelectVentas();
+  mostrarHistorialDevoluciones();
+  mostrarSelectCancelaciones();
+  mostrarHistorialCancelaciones();
+  document.getElementById("detalleDevolucion").innerHTML="";
+  document.getElementById("detalleCancelacion").innerHTML="";
  }
+
  if(seccion==="corte"){
   document.getElementById("fechaCorte").value=fechaHoy();
   mostrarCorte();
  }
 }
+
+/* INVENTARIO */
 
 function agregarProducto(){
  let codigo=document.getElementById("codigo").value.trim();
@@ -270,17 +284,25 @@ function agregarProducto(){
   alert("Revisa los datos del producto.");
   return;
  }
+
  if(codigo&&productos.some(p=>p.codigo===codigo)){
   alert("Ese código ya está registrado.");
   return;
  }
+
  productos.push({
   id:"P"+Date.now(),codigo,nombre,compra,precio,stock,minimo,categoria
  });
+
  guardar();
- ["codigo","nombre","compra","precio","categoria"].forEach(id=>document.getElementById(id).value="");
+
+ ["codigo","nombre","compra","precio","categoria"].forEach(id=>{
+  document.getElementById(id).value="";
+ });
+
  document.getElementById("stock").value="0";
  document.getElementById("minimo").value="5";
+
  mostrarInventario();
  alert("Producto guardado.");
 }
@@ -288,28 +310,34 @@ function agregarProducto(){
 function mostrarInventario(){
  let q=document.getElementById("buscarInventario").value.toLowerCase();
  let html="";
+
  productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
  .forEach(p=>{
   html+=`<div class="producto">
-  <span><b>${seguro(p.nombre)}</b><br>
-  Código: ${seguro(p.codigo||"Sin código")}<br>
-  Venta: ${dinero(p.precio)} | Existencias: <b>${p.stock}</b><br>
-  <span class="small">${p.stock<=p.minimo?"⚠️ Stock bajo":"Stock normal"}</span></span>
-  <button onclick="editarStock('${p.id}')">Ajustar</button>
+   <span><b>${seguro(p.nombre)}</b><br>
+   Código: ${seguro(p.codigo||"Sin código")}<br>
+   Venta: ${dinero(p.precio)} | Existencias: <b>${p.stock}</b><br>
+   <span class="small">${p.stock<=p.minimo?"⚠️ Stock bajo":"Stock normal"}</span></span>
+   <button onclick="editarStock('${seguro(p.id)}')">Ajustar</button>
   </div>`;
  });
+
  document.getElementById("listaInventario").innerHTML=html||"No hay productos.";
  mostrarSelect();
 }
 
 function editarStock(id){
  let p=productos.find(x=>x.id===id);
+ if(!p)return;
+
  let nuevo=prompt("Existencias actuales de "+p.nombre,p.stock);
  if(nuevo===null)return;
+
  if(!/^\d+$/.test(nuevo)){
   alert("Escribe una cantidad entera válida.");
   return;
  }
+
  p.stock=Number(nuevo);
  guardar();
  mostrarInventario();
@@ -319,236 +347,529 @@ function editarStock(id){
 function mostrarSelect(){
  let s=document.getElementById("productoEntrada");
  s.innerHTML=productos.map(p=>
- `<option value="${seguro(p.id)}">${seguro(p.nombre)} (${p.stock} disponibles)</option>`
+  `<option value="${seguro(p.id)}">${seguro(p.nombre)} (${p.stock} disponibles)</option>`
  ).join("");
 }
+ 
+/* PUNTO DE VENTA */
 
-function entradaMercancia(){
- let id=document.getElementById("productoEntrada").value;
- let cantidad=Number(document.getElementById("cantidadEntrada").value);
- let p=productos.find(x=>x.id===id);
- if(!p||!Number.isInteger(cantidad)||cantidad<=0){
-  alert("Selecciona un producto y una cantidad válida.");
-  return;
- }
- p.stock+=cantidad;
- guardar();
- document.getElementById("cantidadEntrada").value="";
- mostrarInventario();
- alert("Entrada registrada correctamente.");
+function mostrarVenta(){
+ let q=document.getElementById("buscar").value.toLowerCase();
+ let html="";
+
+ productos.filter(p=>
+  (p.nombre+" "+p.codigo).toLowerCase().includes(q)&&p.stock>0
+ ).forEach(p=>{
+  html+=`<div class="producto">
+   <span><b>${seguro(p.nombre)}</b><br>
+   ${dinero(p.precio)} | Existencias: ${p.stock}</span>
+   <button onclick="agregarCarrito('${seguro(p.id)}')">Agregar</button>
+  </div>`;
+ });
+
+ document.getElementById("listaVenta").innerHTML=html||"No hay productos disponibles.";
 }
 
 function buscarCodigo(){
  let codigo=document.getElementById("scanner").value.trim();
  let p=productos.find(x=>x.codigo===codigo);
- document.getElementById("scanner").value="";
+
  if(!p){
-  document.getElementById("mensaje").textContent="Producto no encontrado. Regístralo en Inventario.";
+  document.getElementById("mensaje").textContent="Producto no encontrado.";
   return;
  }
+
+ if(p.stock<=0){
+  document.getElementById("mensaje").textContent="Producto sin existencias.";
+  return;
+ }
+
  agregarCarrito(p.id);
- document.getElementById("mensaje").textContent="Producto agregado: "+p.nombre;
+ document.getElementById("scanner").value="";
+ document.getElementById("mensaje").textContent="Producto agregado.";
 }
 
 document.getElementById("scanner").addEventListener("keydown",e=>{
- if(e.key==="Enter"){
-  e.preventDefault();
-  buscarCodigo();
- }
+ if(e.key==="Enter")buscarCodigo();
 });
 
 function agregarCarrito(id){
  let p=productos.find(x=>x.id===id);
- if(!p)return;
- let item=carrito.find(x=>x.id===id);
- let cantidad=item?item.cantidad:0;
- if(cantidad>=p.stock){
-  alert("No hay existencias suficientes.");
+ if(!p||p.stock<=0){
+  alert("Producto sin existencias.");
   return;
  }
- if(item)item.cantidad++;
- else carrito.push({id,cantidad:1});
+
+ let item=carrito.find(x=>x.productoId===id);
+
+ if(item){
+  if(item.cantidad>=p.stock){
+   alert("No hay más existencias disponibles.");
+   return;
+  }
+  item.cantidad++;
+ }else{
+  carrito.push({
+   productoId:p.id,
+   nombre:p.nombre,
+   cantidad:1,
+   precio:p.precio
+  });
+ }
+
  mostrarCarrito();
 }
 
-function mostrarVenta(){
- let q=document.getElementById("buscar").value.toLowerCase();
- document.getElementById("listaVenta").innerHTML=
- productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
- .map(p=>`<div class="producto">
- <span>${seguro(p.nombre)}<br>${dinero(p.precio)} | Stock: ${p.stock}</span>
- <button onclick="agregarCarrito('${p.id}')">Agregar</button>
- </div>`).join("")||"No hay productos.";
+function cambiarCantidad(id,cantidad){
+ let p=productos.find(x=>x.id===id);
+ let item=carrito.find(x=>x.productoId===id);
+ if(!p||!item)return;
+
+ cantidad=Number(cantidad);
+
+ if(!Number.isInteger(cantidad)||cantidad<1){
+  carrito=carrito.filter(x=>x.productoId!==id);
+ }else if(cantidad>p.stock){
+  alert("La cantidad supera las existencias.");
+  item.cantidad=p.stock;
+ }else{
+  item.cantidad=cantidad;
+ }
+
+ mostrarCarrito();
+}
+
+function quitarCarrito(id){
+ carrito=carrito.filter(x=>x.productoId!==id);
+ mostrarCarrito();
+}
+
+function totalCarrito(){
+ return carrito.reduce((s,p)=>s+p.cantidad*p.precio,0);
 }
 
 function mostrarCarrito(){
  let html="";
- carrito.forEach((item,i)=>{
-  let p=productos.find(x=>x.id===item.id);
-  if(!p)return;
+
+ carrito.forEach(p=>{
   html+=`<div class="producto">
-  <span>${seguro(p.nombre)}<br>${item.cantidad} x ${dinero(p.precio)}</span>
-  <div>
-  <button onclick="cantidad(${i},1)">+</button>
-  <button onclick="cantidad(${i},-1)">-</button>
-  <button class="danger" onclick="quitar(${i})">X</button>
-  </div></div>`;
+   <span><b>${seguro(p.nombre)}</b><br>
+   ${dinero(p.precio)} × ${p.cantidad}<br>
+   Subtotal: ${dinero(p.precio*p.cantidad)}</span>
+   <div>
+    <input style="width:65px" type="number" min="1"
+    value="${p.cantidad}"
+    onchange="cambiarCantidad('${seguro(p.productoId)}',this.value)">
+    <button class="danger" onclick="quitarCarrito('${seguro(p.productoId)}')">Quitar</button>
+   </div>
+  </div>`;
  });
+
  document.getElementById("carrito").innerHTML=html||"Carrito vacío.";
- actualizarTotal();
- mostrarVenta();
+ document.getElementById("total").textContent=dinero(totalCarrito());
+ actualizarCambio();
 }
 
-function cantidad(i,n){
- let item=carrito[i];
- let p=productos.find(x=>x.id===item.id);
- if(n>0&&item.cantidad>=p.stock){
-  alert("No hay más existencias.");
-  return;
- }
- item.cantidad+=n;
- if(item.cantidad<=0)carrito.splice(i,1);
- mostrarCarrito();
-}
-
-function quitar(i){
- carrito.splice(i,1);
- mostrarCarrito();
-}
-
-function totalVenta(){
- return carrito.reduce((s,item)=>{
-  let p=productos.find(x=>x.id===item.id);
-  return s+(p?p.precio*item.cantidad:0);
- },0);
-}
-
-function actualizarTotal(){
- let total=totalVenta();
- document.getElementById("total").textContent=dinero(total);
+function actualizarCambio(){
  let efectivo=Number(document.getElementById("efectivo").value)||0;
- document.getElementById("cambio").textContent=dinero(Math.max(0,efectivo-total));
+ let cambio=efectivo-totalCarrito();
+
+ document.getElementById("cambio").textContent=dinero(Math.max(0,cambio));
 }
 
-document.getElementById("efectivo").addEventListener("input",actualizarTotal);
-document.getElementById("buscar").addEventListener("input",mostrarVenta);
-document.getElementById("buscarInventario").addEventListener("input",mostrarInventario);
+document.getElementById("efectivo").addEventListener("input",actualizarCambio);
 
 function cobrar(){
- let total=totalVenta();
- let efectivo=Number(document.getElementById("efectivo").value);
- if(!carrito.length){alert("Carrito vacío.");return;}
- if(!Number.isFinite(efectivo)||efectivo<total){
-  alert("El efectivo es insuficiente.");
+ if(!carrito.length){
+  alert("El carrito está vacío.");
   return;
  }
+
+ let total=totalCarrito();
+ let efectivo=Number(document.getElementById("efectivo").value);
+
+ if(!Number.isFinite(efectivo)||efectivo<total){
+  alert("El efectivo recibido no alcanza para cubrir la venta.");
+  return;
+ }
+
  for(let item of carrito){
-  let p=productos.find(x=>x.id===item.id);
+  let p=productos.find(x=>x.id===item.productoId);
   if(!p||p.stock<item.cantidad){
-   alert("Existencias insuficientes de "+(p?p.nombre:"un producto"));
+   alert("No hay existencias suficientes de "+item.nombre);
    return;
   }
  }
+
+ if(!confirm("¿Confirmar venta por "+dinero(total)+"?"))return;
+
  carrito.forEach(item=>{
-  let p=productos.find(x=>x.id===item.id);
+  let p=productos.find(x=>x.id===item.productoId);
   p.stock-=item.cantidad;
  });
+
  ventas.push({
   id:"V"+Date.now(),
   fecha:new Date().toISOString(),
-  total,
-  efectivo,
+  total:total,
+  efectivo:efectivo,
   cambio:efectivo-total,
-  productos:carrito.map(item=>{
-   let p=productos.find(x=>x.id===item.id);
-   return {
-    productoId:p.id,
-    nombre:p.nombre,
-    cantidad:item.cantidad,
-    precio:p.precio
-   };
-  })
+  productos:carrito.map(p=>({...p}))
  });
- guardar();
- alert("Venta realizada.\nTotal: "+dinero(total)+"\nCambio: "+dinero(efectivo-total));
+
  carrito=[];
  document.getElementById("efectivo").value="";
+ guardar();
  mostrarCarrito();
+ mostrarVenta();
  mostrarInventario();
+ mostrarHistorial();
+
+ alert("Venta registrada correctamente.");
 }
+
+/* ENTRADAS DE MERCANCÍA */
+
+function entradaMercancia(){
+ let id=document.getElementById("productoEntrada").value;
+ let cantidad=Number(document.getElementById("cantidadEntrada").value);
+ let p=productos.find(x=>x.id===id);
+
+ if(!p){
+  alert("Selecciona un producto válido.");
+  return;
+ }
+
+ if(!Number.isInteger(cantidad)||cantidad<=0){
+  alert("Escribe una cantidad entera mayor que cero.");
+  return;
+ }
+
+ p.stock+=cantidad;
+ guardar();
+
+ document.getElementById("cantidadEntrada").value="";
+ mostrarInventario();
+ mostrarVenta();
+
+ alert("Entrada registrada correctamente.");
+}
+
+/* HISTORIAL DE VENTAS */
 
 function mostrarHistorial(){
- const contenedor=document.getElementById("listaHistorial");
- if(ventas.length===0){
-  contenedor.innerHTML="<p>No hay ventas registradas.</p>";
-  return;
- }
- contenedor.innerHTML=[...ventas].reverse().map((v,i)=>{
-  let fecha=new Date(v.fecha).toLocaleString("es-MX");
-  let productosHTML=(v.productos||[]).map(p=>
-   `<p>${seguro(p.nombre)} - ${p.cantidad} x ${dinero(p.precio)}</p>`
-  ).join("");
-  return `
-   <div class="panel">
-    <h3>Venta ${ventas.length-i}</h3>
-    <p><b>Fecha:</b> ${fecha}</p>
-    <h4>Productos:</h4>
-    ${productosHTML}
-    <p><b>Total:</b> ${dinero(v.total)}</p>
-    <p><b>Efectivo:</b> ${dinero(v.efectivo)}</p>
-    <p><b>Cambio:</b> ${dinero(v.cambio)}</p>
-   </div>
-  `;
- }).join("");
+ let html="";
+
+ [...ventas].reverse().forEach(v=>{
+  html+=`<div class="producto">
+   <span>
+   <b>Venta ${seguro(v.id)}</b><br>
+   Fecha: ${new Date(v.fecha).toLocaleString("es-MX")}<br>
+   Total: ${dinero(v.total)}<br>
+   ${Array.isArray(v.productos)?v.productos.map(p=>
+    `${seguro(p.nombre)} × ${p.cantidad}`
+   ).join("<br>"):""}
+   </span>
+  </div>`;
+ });
+
+ document.getElementById("listaHistorial").innerHTML=html||"No hay ventas registradas.";
 }
 
+/* GASTOS DE CAJA */
+
 function registrarGasto(){
- const concepto=document.getElementById("conceptoGasto").value.trim();
- const importe=Number(document.getElementById("importeGasto").value);
- const descripcion=document.getElementById("descripcionGasto").value.trim();
- if(!concepto){alert("Escribe el concepto del gasto.");return;}
- if(!Number.isFinite(importe)||importe<=0){
-  alert("Escribe un importe válido.");
+ let concepto=document.getElementById("conceptoGasto").value.trim();
+ let importe=Number(document.getElementById("importeGasto").value);
+ let descripcion=document.getElementById("descripcionGasto").value.trim();
+
+ if(!concepto||!Number.isFinite(importe)||importe<=0){
+  alert("Escribe un concepto y un importe válido.");
   return;
  }
+
  gastos.push({
   id:"G"+Date.now(),
   fecha:new Date().toISOString(),
-  concepto,importe,descripcion
+  concepto:concepto,
+  importe:importe,
+  descripcion:descripcion
  });
+
  guardar();
+
  document.getElementById("conceptoGasto").value="";
  document.getElementById("importeGasto").value="";
  document.getElementById("descripcionGasto").value="";
+
  mostrarGastos();
  alert("Gasto registrado correctamente.");
 }
 
 function mostrarGastos(){
- const contenedor=document.getElementById("listaGastos");
- if(gastos.length===0){
-  contenedor.innerHTML="<p>No hay gastos registrados.</p>";
+ let html="";
+
+ [...gastos].reverse().forEach(g=>{
+  html+=`<div class="producto">
+   <span>
+   <b>${seguro(g.concepto)}</b><br>
+   Fecha: ${new Date(g.fecha).toLocaleString("es-MX")}<br>
+   Importe: ${dinero(g.importe)}<br>
+   ${seguro(g.descripcion||"")}
+   </span>
+  </div>`;
+ });
+
+ document.getElementById("listaGastos").innerHTML=html||"No hay gastos registrados.";
+}
+
+/* DEVOLUCIONES Y CANCELACIONES */
+
+function cantidadDevuelta(ventaId,indice){
+ return devoluciones
+ .filter(d=>d.ventaId===ventaId)
+ .reduce((total,d)=>{
+  return total+(Array.isArray(d.productos)?
+   d.productos.filter(p=>p.indice===indice)
+   .reduce((s,p)=>s+Number(p.cantidad||0),0):0);
+ },0);
+}
+
+function cantidadCancelada(ventaId,indice){
+ return cancelaciones
+ .filter(c=>c.ventaId===ventaId)
+ .reduce((total,c)=>{
+  return total+(Array.isArray(c.productos)?
+   c.productos.filter(p=>p.indice===indice)
+   .reduce((s,p)=>s+Number(p.cantidad||0),0):0);
+ },0);
+}
+
+function pendienteVenta(venta,indice){
+ let p=venta.productos[indice];
+ let vendida=Number(p.cantidad)||0;
+ return Math.max(0,vendida-cantidadDevuelta(venta.id,indice)-cantidadCancelada(venta.id,indice));
+}
+
+function buscarProductoVendido(p){
+ if(p.productoId){
+  let encontrado=productos.find(x=>x.id===p.productoId);
+  if(encontrado)return encontrado;
+ }
+ return productos.find(x=>x.nombre.toLowerCase()===
+  String(p.nombre||"").toLowerCase());
+}
+
+/* SELECTOR DE DEVOLUCIONES */
+
+function mostrarSelectVentas(){
+ const select=document.getElementById("ventaDevolucion");
+
+ const disponibles=ventas.filter(v=>
+  !cancelaciones.some(c=>c.ventaId===v.id)&&
+  Array.isArray(v.productos)&&
+  v.productos.some((p,i)=>pendienteVenta(v,i)>0)
+ );
+
+ if(!disponibles.length){
+  select.innerHTML='<option value="">No hay ventas disponibles para devolver</option>';
   return;
  }
- contenedor.innerHTML=[...gastos].reverse().map(g=>`
-  <div class="producto">
-   <span><b>${seguro(g.concepto)}</b><br>
-   ${new Date(g.fecha).toLocaleString("es-MX")}<br>
-   ${seguro(g.descripcion||"Sin descripción")}</span>
-   <b>${dinero(g.importe)}</b>
-  </div>
- `).join("");
+
+ select.innerHTML='<option value="">Selecciona una venta</option>'+
+ disponibles.map(v=>
+  `<option value="${seguro(v.id)}">${seguro(v.id)} - ${new Date(v.fecha).toLocaleString("es-MX")} - ${dinero(v.total)}</option>`
+ ).join("");
 }
+
+function cargarVentaDevolucion(){
+ const id=document.getElementById("ventaDevolucion").value;
+ ventaSeleccionada=ventas.find(v=>v.id===id);
+
+ if(!ventaSeleccionada){
+  document.getElementById("detalleDevolucion").innerHTML="<p>No se encontró la venta.</p>";
+  return;
+ }
+
+ mostrarDetalleDevolucion();
+}
+
+/* DETALLE Y CÁLCULO DE DEVOLUCIÓN */
+
+function mostrarDetalleDevolucion(){
+ let v=ventaSeleccionada;
+ let html=`<h3>Venta ${seguro(v.id)}</h3>
+ <label>Motivo de devolución</label>
+ <input id="motivoDevolucion" placeholder="Escribe el motivo">`;
+
+ v.productos.forEach((p,i)=>{
+  let devuelta=cantidadDevuelta(v.id,i);
+  let pendiente=pendienteVenta(v,i);
+
+  html+=`<div class="producto">
+   <span>
+   <b>${seguro(p.nombre)}</b><br>
+   Vendidas: ${p.cantidad}<br>
+   Devueltas: ${devuelta}<br>
+   Pendientes: ${pendiente}<br>
+   Precio: ${dinero(p.precio)}
+   </span>
+   <div style="min-width:90px">
+    <label>Devolver</label>
+    <input type="number" min="0" max="${pendiente}" step="1"
+    value="0" id="devolver_${i}" oninput="actualizarTotalDevolucion()">
+   </div>
+  </div>`;
+ });
+
+ html+=`<p>Total a devolver: <b id="totalDevolucion">${dinero(0)}</b></p>
+ <button class="green" onclick="registrarDevolucion()">Registrar devolución</button>`;
+
+ document.getElementById("detalleDevolucion").innerHTML=html;
+}
+
+function actualizarTotalDevolucion(){
+ if(!ventaSeleccionada)return;
+
+ let total=0;
+
+ ventaSeleccionada.productos.forEach((p,i)=>{
+  let campo=document.getElementById("devolver_"+i);
+  if(!campo)return;
+
+  let cantidad=Number(campo.value)||0;
+  let pendiente=pendienteVenta(ventaSeleccionada,i);
+
+  if(cantidad>pendiente){
+   cantidad=pendiente;
+   campo.value=pendiente;
+  }
+
+  if(cantidad<0){
+   cantidad=0;
+   campo.value=0;
+  }
+
+  total+=cantidad*Number(p.precio||0);
+ });
+
+ document.getElementById("totalDevolucion").textContent=dinero(total);
+}
+
+/* REGISTRAR DEVOLUCIÓN */
+
+function registrarDevolucion(){
+ let v=ventaSeleccionada;
+ if(!v)return;
+
+ let motivo=document.getElementById("motivoDevolucion").value.trim();
+
+ if(!motivo){
+  alert("Escribe el motivo de la devolución.");
+  return;
+ }
+
+ let articulos=[];
+ let total=0;
+
+ v.productos.forEach((p,i)=>{
+  let campo=document.getElementById("devolver_"+i);
+  let cantidad=Number(campo?.value)||0;
+
+  if(!Number.isInteger(cantidad)||cantidad<0||
+  cantidad>pendienteVenta(v,i)){
+   return;
+  }
+
+  if(cantidad>0){
+   let producto=buscarProductoVendido(p);
+   if(!producto){
+    articulos.push({error:true,nombre:p.nombre});
+    return;
+   }
+
+   articulos.push({
+    indice:i,
+    productoId:producto.id,
+    nombre:p.nombre,
+    cantidad:cantidad,
+    precio:Number(p.precio)||0
+   });
+
+   total+=cantidad*(Number(p.precio)||0);
+  }
+ });
+
+ if(articulos.some(p=>p.error)){
+  alert("No se encontró en inventario: "+articulos.find(p=>p.error).nombre+". No se registró la devolución.");
+  return;
+ }
+
+ if(!articulos.length){
+  alert("Ingresa al menos una cantidad para devolver.");
+  return;
+ }
+
+ if(!confirm("¿Registrar devolución por "+dinero(total)+"?"))return;
+
+ articulos.forEach(a=>{
+  let producto=productos.find(p=>p.id===a.productoId);
+  producto.stock+=a.cantidad;
+ });
+
+ devoluciones.push({
+  id:"D"+Date.now(),
+  ventaId:v.id,
+  fecha:new Date().toISOString(),
+  motivo:motivo,
+  total:total,
+  productos:articulos
+ });
+
+ guardar();
+ ventaSeleccionada=null;
+ document.getElementById("detalleDevolucion").innerHTML="";
+ mostrarSelectVentas();
+ mostrarHistorialDevoluciones();
+ mostrarInventario();
+ mostrarVenta();
+
+ alert("Devolución registrada correctamente.");
+}
+
+/* HISTORIAL DE DEVOLUCIONES */
+
+function mostrarHistorialDevoluciones(){
+ let html="";
+
+ [...devoluciones].reverse().forEach(d=>{
+  html+=`<div class="producto">
+   <span>
+   <b>Devolución ${seguro(d.id)}</b><br>
+   Venta: ${seguro(d.ventaId)}<br>
+   Fecha: ${new Date(d.fecha).toLocaleString("es-MX")}<br>
+   Motivo: ${seguro(d.motivo)}<br>
+   Importe: ${dinero(d.total)}<br>
+   ${Array.isArray(d.productos)?d.productos.map(p=>
+    `${seguro(p.nombre)} × ${p.cantidad}`
+   ).join("<br>"):""}
+   </span>
+  </div>`;
+ });
+
+ document.getElementById("listaDevoluciones").innerHTML=
+ html||"Todavía no hay devoluciones.";
+}
+
+/* SELECTOR DE CANCELACIONES */
 
 function mostrarSelectCancelaciones(){
  const select=document.getElementById("ventaCancelacion");
- alert("Ventas guardadas: "+ventas.length+"\nCancelaciones: "+cancelaciones.length);
-
- console.log("VENTAS:",ventas);
- console.log("CANCELACIONES:",cancelaciones);
 
  const disponibles=ventas.filter(v=>
-  !cancelaciones.some(c=>c.ventaId===v.id)
+  !cancelaciones.some(c=>c.ventaId===v.id)&&
+  Array.isArray(v.productos)&&
+  v.productos.some((p,i)=>pendienteVenta(v,i)>0)
  );
 
  if(!disponibles.length){
@@ -556,408 +877,239 @@ function mostrarSelectCancelaciones(){
   return;
  }
 
- select.innerHTML=[...disponibles].reverse().map(v=>
-  `<option value="${seguro(v.id)}">
-   ${seguro(v.id)} - ${new Date(v.fecha).toLocaleString("es-MX")} - ${dinero(v.total)}
-  </option>`
+ select.innerHTML='<option value="">Selecciona una venta</option>'+
+ disponibles.map(v=>
+  `<option value="${seguro(v.id)}">${seguro(v.id)} - ${new Date(v.fecha).toLocaleString("es-MX")} - ${dinero(v.total)}</option>`
  ).join("");
 }
- function cargarVentaCancelacion(){
+
+/* CARGAR VENTA PARA CANCELAR */
+
+function cargarVentaCancelacion(){
  const id=document.getElementById("ventaCancelacion").value;
- const contenedor=document.getElementById("detalleCancelacion");
+ let v=ventas.find(x=>x.id===id);
 
- const venta=ventas.find(v=>v.id===id);
-
- if(!venta){
-  contenedor.innerHTML="<p>No se encontró la venta.</p>";
+ if(!v){
+  document.getElementById("detalleCancelacion").innerHTML=
+  "<p>No se encontró la venta.</p>";
   return;
  }
 
- let html=`
-  <hr>
-  <h3>Detalle de la venta</h3>
-  <p>Venta: ${seguro(venta.id)}</p>
-  <p>Fecha: ${new Date(venta.fecha).toLocaleString("es-MX")}</p>
-  <p>Total original: <b>${dinero(venta.total)}</b></p>
-  <h4>Productos:</h4>
- `;
+ let html=`<h3>Venta ${seguro(v.id)}</h3>
+ <p>Total original: <b>${dinero(v.total)}</b></p>
+ <p>Las cantidades ya devueltas no se volverán a reintegrar.</p>
+ <label>Motivo de cancelación</label>
+ <input id="motivoCancelacion" placeholder="Escribe el motivo">`;
 
- (venta.productos||[]).forEach(p=>{
-  html+=`
-   <p>${seguro(p.nombre)} - ${p.cantidad} x ${dinero(p.precio)}</p>
-  `;
+ let total=0;
+
+ v.productos.forEach((p,i)=>{
+  let devuelta=cantidadDevuelta(v.id,i);
+  let pendiente=pendienteVenta(v,i);
+  let importe=pendiente*Number(p.precio||0);
+  total+=importe;
+
+  html+=`<div class="producto">
+   <span>
+   <b>${seguro(p.nombre)}</b><br>
+   Vendidas: ${p.cantidad}<br>
+   Devueltas anteriormente: ${devuelta}<br>
+   Cantidad pendiente: ${pendiente}<br>
+   A reintegrar: ${dinero(importe)}
+   </span>
+  </div>`;
  });
 
- html+=`
-  <label>Motivo de cancelación</label>
-  <input id="motivoCancelacion" placeholder="Ej. Error de captura o solicitud del cliente">
-  <button class="danger" onclick="registrarCancelacion('${seguro(venta.id)}')">
-   Confirmar cancelación
-  </button>
- `;
+ html+=`<p>Total a reintegrar: <b>${dinero(total)}</b></p>
+ <button class="danger" onclick="registrarCancelacion('${seguro(v.id)}')">Confirmar cancelación</button>`;
 
- contenedor.innerHTML=html;
- }
- function registrarCancelacion(id){
- const venta=ventas.find(v=>v.id===id);
+ document.getElementById("detalleCancelacion").innerHTML=html;
+}
 
- if(!venta){
-  alert("No se encontró la venta.");
+/* REGISTRAR CANCELACIÓN */
+
+function registrarCancelacion(id){
+ let v=ventas.find(x=>x.id===id);
+
+ if(!v||cancelaciones.some(c=>c.ventaId===id)){
+  alert("Esta venta no está disponible para cancelar.");
   return;
  }
 
- if(cancelaciones.some(c=>c.ventaId===id)){
-  alert("Esta venta ya fue cancelada.");
-  return;
- }
-
- const motivo=document.getElementById("motivoCancelacion").value.trim();
+ let motivo=document.getElementById("motivoCancelacion").value.trim();
 
  if(!motivo){
-  alert("Escribe el motivo de cancelación.");
+  alert("Escribe el motivo de la cancelación.");
   return;
  }
 
- let lineas=[];
+ let articulos=[];
  let totalReintegrado=0;
 
- (venta.productos||[]).forEach((p,i)=>{
-  const yaDevuelto=cantidadDevuelta(venta.id,i);
-  const pendiente=Number(p.cantidad)-yaDevuelto;
+ v.productos.forEach((p,i)=>{
+  let cantidad=pendienteVenta(v,i);
 
-  if(pendiente<=0)return;
+  if(cantidad>0){
+   let producto=buscarProductoVendido(p);
 
-  const producto=buscarProductoVendido(p);
+   if(!producto){
+    articulos.push({error:true,nombre:p.nombre});
+    return;
+   }
 
-  if(!producto){
-   alert("No se encontró en inventario: "+p.nombre);
-   lineas=[];
-   return;
+   articulos.push({
+    indice:i,
+    productoId:producto.id,
+    nombre:p.nombre,
+    cantidad:cantidad,
+    precio:Number(p.precio)||0
+   });
+
+   totalReintegrado+=cantidad*(Number(p.precio)||0);
   }
-
-  lineas.push({
-   indice:i,
-   productoId:producto.id,
-   nombre:p.nombre,
-   cantidad:pendiente,
-   precio:Number(p.precio)
-  });
-
-  totalReintegrado+=pendiente*Number(p.precio);
  });
 
- if((venta.productos||[]).some((p,i)=>{
-  const pendiente=Number(p.cantidad)-cantidadDevuelta(venta.id,i);
-  return pendiente>0&&!buscarProductoVendido(p);
- })){
+ if(articulos.some(p=>p.error)){
+  alert("No se encontró en inventario: "+
+  articulos.find(p=>p.error).nombre+
+  ". No se registró la cancelación.");
   return;
  }
 
- if(!confirm("¿Confirmas cancelar la venta "+id+"?")){
+ if(!articulos.length){
+  alert("Esta venta ya no tiene mercancía pendiente por cancelar.");
   return;
  }
 
- lineas.forEach(linea=>{
-  const producto=productos.find(p=>p.id===linea.productoId);
-  if(producto)producto.stock+=linea.cantidad;
+ if(!confirm("¿Cancelar la venta y reintegrar "+dinero(totalReintegrado)+"?"))return;
+
+ articulos.forEach(a=>{
+  let producto=productos.find(p=>p.id===a.productoId);
+  producto.stock+=a.cantidad;
  });
 
  cancelaciones.push({
   id:"C"+Date.now(),
-  ventaId:venta.id,
+  ventaId:v.id,
   fecha:new Date().toISOString(),
-  motivo,
-  totalOriginal:Number(venta.total)||0,
-  totalReintegrado,
-  productos:lineas
+  motivo:motivo,
+  totalOriginal:Number(v.total)||0,
+  totalReintegrado:totalReintegrado,
+  productos:articulos
  });
 
  guardar();
- mostrarInventario();
- mostrarSelectCancelaciones();
- mostrarHistorialCancelaciones();
 
  document.getElementById("detalleCancelacion").innerHTML="";
+ document.getElementById("detalleDevolucion").innerHTML="";
 
- alert("Venta cancelada correctamente.\nLas existencias pendientes fueron reintegradas.");
- }
- function mostrarHistorialCancelaciones(){
+ mostrarSelectCancelaciones();
+ mostrarSelectVentas();
+ mostrarHistorialCancelaciones();
+ mostrarHistorialDevoluciones();
+ mostrarInventario();
+ mostrarVenta();
+
+ alert("Cancelación registrada correctamente.");
+}
+
+/* HISTORIAL DE CANCELACIONES */
+
+function mostrarHistorialCancelaciones(){
  const contenedor=document.getElementById("listaCancelaciones");
 
- if(!cancelaciones.length){
-  contenedor.innerHTML="<p>No hay cancelaciones registradas.</p>";
-  return;
- }
-
  contenedor.innerHTML=[...cancelaciones].reverse().map(c=>{
-  const detalle=(c.productos||[]).map(p=>
-   `<p>${seguro(p.nombre)}: ${p.cantidad} x ${dinero(p.precio)}</p>`
-  ).join("");
+  let detalle=Array.isArray(c.productos)?c.productos.map(p=>
+   `${seguro(p.nombre)} × ${p.cantidad}`
+  ).join("<br>"):"";
 
-  return `
-   <div class="panel">
-    <h3>Cancelación ${seguro(c.id)}</h3>
-    <p>Venta: ${seguro(c.ventaId)}</p>
-    <p>Fecha: ${new Date(c.fecha).toLocaleString("es-MX")}</p>
-    <p>Motivo: ${seguro(c.motivo)}</p>
-    ${detalle}
-    <p><b>Total original: ${dinero(c.totalOriginal)}</b></p>
-    <p><b>Mercancía reintegrada: ${dinero(c.totalReintegrado)}</b></p>
-   </div>
-  `;
- }).join("");
- }
-
-function cantidadDevuelta(ventaId,indice){
- return devoluciones.reduce((s,d)=>{
-  if(d.ventaId!==ventaId)return s;
-  return s+(d.productos||[]).reduce((a,p)=>{
-   return a+(p.indice===indice?Number(p.cantidad):0);
-  },0);
- },0);
+  return `<div class="producto">
+   <span>
+   <b>Cancelación ${seguro(c.id)}</b><br>
+   Venta: ${seguro(c.ventaId)}<br>
+   Fecha: ${new Date(c.fecha).toLocaleString("es-MX")}<br>
+   Motivo: ${seguro(c.motivo)}<br>
+   Total original: ${dinero(c.totalOriginal)}<br>
+   Importe reintegrado: ${dinero(c.totalReintegrado)}<br>
+   ${detalle}
+   </span>
+  </div>`;
+ }).join("")||"Todavía no hay cancelaciones.";
 }
 
-function buscarProductoVendido(p){
- if(p.productoId){
-  const porId=productos.find(x=>x.id===p.productoId);
-  if(porId)return porId;
- }
- return productos.find(x=>x.nombre===p.nombre);
-}
-
-function cargarVentaDevolucion(){
- const id=document.getElementById("ventaDevolucion").value;
- ventaSeleccionada=ventas.find(v=>v.id===id);
- if(!ventaSeleccionada){
-  document.getElementById("detalleDevolucion").innerHTML="<p>No se encontró la venta.</p>";
-  return;
- }
- mostrarDetalleDevolucion();
-}
-
-/* NUEVO: calcula el importe de devolución en tiempo real */
-function actualizarTotalDevolucion(){
- const venta=ventaSeleccionada;
- const salida=document.getElementById("totalDevolucion");
- if(!venta||!salida)return;
-
- let total=0;
-
- (venta.productos||[]).forEach((p,i)=>{
-  const campo=document.getElementById("devCantidad_"+i);
-  if(!campo)return;
-
-  const cantidad=Number(campo.value);
-  const restante=Number(p.cantidad)-cantidadDevuelta(venta.id,i);
-
-  if(Number.isInteger(cantidad)&&cantidad>=0&&cantidad<=restante){
-   total+=cantidad*Number(p.precio);
-  }
- });
-
- salida.textContent=dinero(total);
-}
-
-function mostrarDetalleDevolucion(){
- const contenedor=document.getElementById("detalleDevolucion");
- const venta=ventaSeleccionada;
- if(!venta)return;
-
- let html=`
- <hr>
- <h3>Detalle de la venta</h3>
- <p>Fecha: ${new Date(venta.fecha).toLocaleString("es-MX")}</p>
- <p>Total original: <b>${dinero(venta.total)}</b></p>
- <h3>Selecciona las cantidades a devolver</h3>
- `;
-
- let disponibles=0;
-
- (venta.productos||[]).forEach((p,i)=>{
-  const devueltos=cantidadDevuelta(venta.id,i);
-  const restante=Number(p.cantidad)-devueltos;
-  if(restante<=0)return;
-  disponibles++;
-
-  html+=`
-   <div class="producto">
-    <span>
-     <b>${seguro(p.nombre)}</b><br>
-     Precio: ${dinero(p.precio)}<br>
-     Vendidos: ${p.cantidad} | Ya devueltos: ${devueltos}<br>
-     Disponibles para devolución: ${restante}
-    </span>
-    <span style="min-width:90px">
-     <label>Cantidad</label>
-     <input id="devCantidad_${i}" type="number" min="0" max="${restante}" step="1" value="0" oninput="actualizarTotalDevolucion()">
-    </span>
-   </div>
-  `;
- });
-
-if(!disponibles){
-  contenedor.innerHTML=html+"<p>Esta venta ya fue devuelta completamente.</p>";
-  return;
- }
-
- html+=`
-  <div class="panel">
-   <h3>Total a devolver: <strong class="total" id="totalDevolucion">$0.00</strong></h3>
-   <p class="small">El importe se actualiza al cambiar las cantidades.</p>
-  </div>
-  <label>Motivo de la devolución</label>
-  <input id="motivoDevolucion" placeholder="Ej. Producto dañado o cambio">
-  <button class="green" onclick="registrarDevolucion()">Registrar devolución</button>
- `;
- contenedor.innerHTML=html;
- actualizarTotalDevolucion();
-}
-
-function registrarDevolucion(){
- const venta=ventaSeleccionada;
- if(!venta){alert("Primero selecciona una venta.");return;}
-
- const motivo=document.getElementById("motivoDevolucion").value.trim();
- if(!motivo){alert("Escribe el motivo de la devolución.");return;}
-
- let lineas=[];
- let total=0;
-
- (venta.productos||[]).forEach((p,i)=>{
-  const campo=document.getElementById("devCantidad_"+i);
-  if(!campo)return;
-
-  const cantidad=Number(campo.value);
-  const restante=Number(p.cantidad)-cantidadDevuelta(venta.id,i);
-
-  if(!Number.isInteger(cantidad)||cantidad<0||cantidad>restante){
-   throw new Error("Cantidad inválida para "+p.nombre);
-  }
-  if(cantidad===0)return;
-
-  const producto=buscarProductoVendido(p);
-  if(!producto){
-   throw new Error("No se encontró en el inventario: "+p.nombre);
-  }
-
-  lineas.push({
-   indice:i,
-   productoId:producto.id,
-   nombre:p.nombre,
-   cantidad,
-   precio:Number(p.precio)
-  });
-  total+=cantidad*Number(p.precio);
- });
-
- if(!lineas.length){
-  alert("Selecciona al menos un producto para devolver.");
-  return;
- }
-
- if(!confirm("¿Confirmas la devolución por "+dinero(total)+"?")){
-  return;
- }
-
- lineas.forEach(linea=>{
-  const producto=productos.find(p=>p.id===linea.productoId);
-  producto.stock+=linea.cantidad;
- });
-
- devoluciones.push({
-  id:"D"+Date.now(),
-  ventaId:venta.id,
-  fecha:new Date().toISOString(),
-  motivo,
-  total,
-  productos:lineas
- });
-
- guardar();
- mostrarInventario();
- mostrarHistorialDevoluciones();
- mostrarDetalleDevolucion();
-
- alert("Devolución registrada.\nImporte: "+dinero(total)+"\nLas existencias fueron actualizadas.");
-}
-
-function mostrarHistorialDevoluciones(){
- const contenedor=document.getElementById("listaDevoluciones");
- if(!devoluciones.length){
-  contenedor.innerHTML="<p>No hay devoluciones registradas.</p>";
-  return;
- }
- contenedor.innerHTML=[...devoluciones].reverse().map(d=>{
-  const detalle=(d.productos||[]).map(p=>
-   `<p>${seguro(p.nombre)}: ${p.cantidad} x ${dinero(p.precio)}</p>`
-  ).join("");
-  return `
-   <div class="panel">
-    <h3>Devolución ${seguro(d.id)}</h3>
-    <p>Venta: ${seguro(d.ventaId)}</p>
-    <p>Fecha: ${new Date(d.fecha).toLocaleString("es-MX")}</p>
-    <p>Motivo: ${seguro(d.motivo)}</p>
-    ${detalle}
-    <p><b>Total devuelto: ${dinero(d.total)}</b></p>
-   </div>
-  `;
- }).join("");
-}
+/* CORTE DE CAJA */
 
 function mostrarCorte(){
- const fecha=document.getElementById("fechaCorte").value;
- const resultado=document.getElementById("resultadoCorte");
+ let fecha=document.getElementById("fechaCorte").value;
+
  if(!fecha){
-  resultado.innerHTML="<p>Selecciona una fecha.</p>";
+  document.getElementById("resultadoCorte").innerHTML=
+  "Selecciona una fecha.";
   return;
  }
 
- const ventasDia=ventas.filter(v=>fechaLocal(v.fecha)===fecha);
- const gastosDia=gastos.filter(g=>fechaLocal(g.fecha)===fecha);
- const devolucionesDia=devoluciones.filter(d=>fechaLocal(d.fecha)===fecha);
- const cancelacionesDia=cancelaciones.filter(c=>fechaLocal(c.fecha)===fecha);
+ let ventasDia=ventas.filter(v=>fechaLocal(v.fecha)===fecha);
+ let gastosDia=gastos.filter(g=>fechaLocal(g.fecha)===fecha);
+ let devolucionesDia=devoluciones.filter(d=>fechaLocal(d.fecha)===fecha);
+ let cancelacionesDia=cancelaciones.filter(c=>fechaLocal(c.fecha)===fecha);
 
- const numeroVentas=ventasDia.length;
- const totalVendido=ventasDia.reduce((s,v)=>s+Number(v.total),0);
- const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
- const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
- const efectivoNeto=efectivoRecibido-cambioEntregado;
- const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0); 
- const totalDevoluciones=devolucionesDia.reduce((s,d)=>s+Number(d.total),0);
-const totalCancelaciones=cancelacionesDia.reduce((s,c)=>s+Number(c.totalReintegrado),0);
-const efectivoFinal=efectivoNeto-totalGastos-totalDevoluciones-totalCancelaciones;
- resultado.innerHTML=`
-  <div class="panel">
-   <h3>Resumen del día</h3>
-   <p>Fecha: ${fecha}</p>
-   <p>Número de ventas: ${numeroVentas}</p>
-   <p>Total vendido: <b>${dinero(totalVendido)}</b></p>
-   <p>Efectivo recibido: ${dinero(efectivoRecibido)}</p>
-   <p>Cambio entregado: ${dinero(cambioEntregado)}</p>
-   <h3>Efectivo neto de ventas: ${dinero(efectivoNeto)}</h3>
-   <hr>
-   <h3>Gastos de caja</h3>
-   <p>Número de gastos: ${gastosDia.length}</p>
-   <p>Total de gastos: ${dinero(totalGastos)}</p>
-   <hr>
-   <h3>Devoluciones</h3>
-   <p>Número de devoluciones: ${devolucionesDia.length}</p>
-   <p>Total devuelto: ${dinero(totalDevoluciones)}</p>
-   <hr>
-<h3>Cancelaciones</h3>
-<p>Número de cancelaciones: ${cancelacionesDia.length}</p>
-<p>Total reembolsado por cancelaciones: ${dinero(totalCancelaciones)}</p>
-   <hr>
-   <h2>Efectivo final en caja: ${dinero(efectivoFinal)}</h2>
-   <p class="small">Cálculo: efectivo neto de ventas menos gastos y devoluciones.</p>
-  </div>
+ let totalVentas=ventasDia.reduce((s,v)=>
+  s+(Number(v.total)||0),0);
+
+ let efectivoRecibido=ventasDia.reduce((s,v)=>
+  s+(Number(v.efectivo)||0),0);
+
+ let cambioEntregado=ventasDia.reduce((s,v)=>
+  s+(Number(v.cambio)||0),0);
+
+ let efectivoNeto=efectivoRecibido-cambioEntregado;
+
+ let totalGastos=gastosDia.reduce((s,g)=>
+  s+(Number(g.importe)||0),0);
+
+ let totalDevoluciones=devolucionesDia.reduce((s,d)=>
+  s+(Number(d.total)||0),0);
+
+ let totalCancelaciones=cancelacionesDia.reduce((s,c)=>
+  s+(Number(c.totalReintegrado)||0),0);
+
+ let efectivoFinal=efectivoNeto-totalGastos-
+ totalDevoluciones-totalCancelaciones;
+
+ document.getElementById("resultadoCorte").innerHTML=`
+ <hr>
+ <h3>Resumen del día ${fecha}</h3>
+ <p>Ventas registradas: <b>${ventasDia.length}</b></p>
+ <p>Venta bruta: <b>${dinero(totalVentas)}</b></p>
+ <p>Efectivo recibido: ${dinero(efectivoRecibido)}</p>
+ <p>Cambio entregado: ${dinero(cambioEntregado)}</p>
+ <p>Efectivo neto de ventas: <b>${dinero(efectivoNeto)}</b></p>
+ <hr>
+ <p>Gastos de caja: <b>${dinero(totalGastos)}</b></p>
+ <p>Devoluciones: <b>${dinero(totalDevoluciones)}</b></p>
+ <p>Cancelaciones: <b>${dinero(totalCancelaciones)}</b></p>
+ <hr>
+ <p class="total">Efectivo final: ${dinero(efectivoFinal)}</p>
+ <p class="small">Este cálculo descuenta los gastos, devoluciones y cancelaciones registrados en la fecha seleccionada.</p>
  `;
 }
+
+/* INICIALIZACIÓN */
+
+document.getElementById("buscar").addEventListener("input",mostrarVenta);
+document.getElementById("buscarInventario").addEventListener("input",mostrarInventario);
 
 mostrarInventario();
 mostrarVenta();
 mostrarCarrito();
-guardar();
+mostrarHistorial();
+mostrarGastos();
+mostrarSelect();
+mostrarSelectVentas();
+mostrarSelectCancelaciones();
+mostrarHistorialDevoluciones();
+mostrarHistorialCancelaciones();
+
 </script>
 </body>
 </html>
