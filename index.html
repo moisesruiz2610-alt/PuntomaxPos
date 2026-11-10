@@ -24,8 +24,9 @@ button{border:0;background:#173b70;color:white;cursor:pointer}
 <body>
 <header>
 <h1>PuntoMax POS</h1>
-<p>Punto de venta</p>
+<p>Punto de venta e inventarios</p>
 </header>
+
 <main>
 <div class="panel">
 <h2>Agregar producto</h2>
@@ -33,11 +34,11 @@ button{border:0;background:#173b70;color:white;cursor:pointer}
 <input id="nombre" placeholder="Ej. Coca Cola 600 ml">
 <label>Precio ($)</label>
 <input id="precio" type="number" min="0.01" step="0.01" placeholder="Ej. 20">
-<button onclick="agregarProducto()">Agregar producto</button>
+<button onclick="agregarProducto()">Guardar producto</button>
 </div>
 
 <div class="panel">
-<h2>Productos</h2>
+<h2>Productos registrados</h2>
 <div id="productos"></div>
 </div>
 
@@ -46,15 +47,26 @@ button{border:0;background:#173b70;color:white;cursor:pointer}
 <div id="carrito">No hay productos agregados.</div>
 <p>Total: <span class="total" id="total">$0.00</span></p>
 <label>Efectivo recibido ($)</label>
-<input id="efectivo" type="number" min="0" step="0.01" placeholder="Cantidad recibida">
+<input id="efectivo" type="number" min="0" step="0.01">
 <p>Cambio: <strong id="cambio">$0.00</strong></p>
 <button onclick="cobrar()">Cobrar venta</button>
 </div>
 </main>
 
 <script>
-let productos=[];
+function cargarDatos(clave, defecto){
+ try{
+  const dato=localStorage.getItem(clave);
+  return dato ? JSON.parse(dato) : defecto;
+ }catch(e){return defecto;}
+}
+
+let productos=cargarDatos("puntomax_productos",[]);
 let carrito=[];
+
+function guardarProductos(){
+ localStorage.setItem("puntomax_productos",JSON.stringify(productos));
+}
 
 function dinero(n){
  return "$"+n.toFixed(2);
@@ -70,9 +82,11 @@ function agregarProducto(){
  }
 
  productos.push({nombre,precio});
+ guardarProductos();
  document.getElementById("nombre").value="";
  document.getElementById("precio").value="";
  mostrarProductos();
+ alert("Producto guardado correctamente.");
 }
 
 function mostrarProductos(){
@@ -88,8 +102,8 @@ function mostrarProductos(){
 
 function agregarCarrito(i){
  let item=carrito.find(x=>x.indice===i);
- if(item){item.cantidad++;}
- else{carrito.push({indice:i,cantidad:1});}
+ if(item)item.cantidad++;
+ else carrito.push({indice:i,cantidad:1});
  mostrarCarrito();
 }
 
@@ -111,7 +125,7 @@ function mostrarCarrito(){
 
 function cambiarCantidad(i,n){
  carrito[i].cantidad+=n;
- if(carrito[i].cantidad<=0) carrito.splice(i,1);
+ if(carrito[i].cantidad<=0)carrito.splice(i,1);
  mostrarCarrito();
 }
 
@@ -144,6 +158,7 @@ function cobrar(){
  document.getElementById("efectivo").value="";
  mostrarCarrito();
 }
+
 mostrarProductos();
 mostrarCarrito();
 </script>
