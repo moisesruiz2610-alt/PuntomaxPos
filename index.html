@@ -39,6 +39,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="ver('inventario')">Inventario</button>
 <button onclick="ver('entradas')">Entradas</button>
 <button onclick="ver('historial')">Historial de ventas</button>
+<button onclick="ver('gastos')">Gastos de caja</button>
 <button onclick="ver('corte')">Corte de caja</button>
 </div>
 </div>
@@ -106,24 +107,46 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="entradaMercancia()">Registrar entrada</button>
 </div>
 </section>
- <section id="historial" class="hidden">
-  <div class="panel">
-    <h2>Historial de ventas</h2>
-    <div id="listaHistorial"></div>
-  </div>
- </section>
- <section id="corte" class="hidden">
- <div class="panel">
-  <h2>Corte de caja</h2>
 
-  <label>Seleccionar fecha</label>
-  <input type="date" id="fechaCorte">
+<section id="historial" class="hidden">
+<div class="panel">
+<h2>Historial de ventas</h2>
+<div id="listaHistorial"></div>
+</div>
+</section>
 
-  <button onclick="mostrarCorte()">Consultar corte</button>
+<section id="gastos" class="hidden">
+<div class="panel">
+<h2>Gastos de caja</h2>
+<p class="small">Registra las salidas de efectivo de tu negocio.</p>
 
-  <div id="resultadoCorte"></div>
- </div>
- </section>
+<label>Concepto del gasto</label>
+<input id="conceptoGasto" placeholder="Ej. Compra de bolsas">
+
+<label>Importe del gasto</label>
+<input id="importeGasto" type="number" min="0.01" step="0.01" placeholder="0.00">
+
+<label>Descripción (opcional)</label>
+<input id="descripcionGasto" placeholder="Detalles del gasto">
+
+<button class="green" onclick="registrarGasto()">Registrar gasto</button>
+</div>
+
+<div class="panel">
+<h3>Gastos registrados</h3>
+<div id="listaGastos"></div>
+</div>
+</section>
+
+<section id="corte" class="hidden">
+<div class="panel">
+<h2>Corte de caja</h2>
+<label>Seleccionar fecha</label>
+<input type="date" id="fechaCorte">
+<button onclick="mostrarCorte()">Consultar corte</button>
+<div id="resultadoCorte"></div>
+</div>
+</section>
 </main>
 
 <script>
@@ -147,10 +170,12 @@ let productos=leer("puntomax_productos",[]).map((p,i)=>({
 
 let carrito=[];
 let ventas=leer("puntomax_ventas",[]);
+let gastos=leer("puntomax_gastos",[]);
 
 function guardar(){
  localStorage.setItem("puntomax_productos",JSON.stringify(productos));
  localStorage.setItem("puntomax_ventas",JSON.stringify(ventas));
+ localStorage.setItem("puntomax_gastos",JSON.stringify(gastos));
 }
 
 function dinero(n){
@@ -164,8 +189,21 @@ function seguro(s){
  }[c]));
 }
 
+function fechaLocal(fecha){
+ const d=new Date(fecha);
+ if(isNaN(d.getTime()))return "";
+ const año=d.getFullYear();
+ const mes=String(d.getMonth()+1).padStart(2,"0");
+ const dia=String(d.getDate()).padStart(2,"0");
+ return año+"-"+mes+"-"+dia;
+}
+
+function fechaHoy(){
+ return fechaLocal(new Date());
+}
+
 function ver(seccion){
- ["ventas","inventario","entradas","historial","corte"].forEach(id=>{
+ ["ventas","inventario","entradas","historial","gastos","corte"].forEach(id=>{
   document.getElementById(id).classList.toggle("hidden",id!==seccion);
  });
 
@@ -173,8 +211,10 @@ function ver(seccion){
  if(seccion==="entradas")mostrarSelect();
  if(seccion==="ventas")mostrarVenta();
  if(seccion==="historial")mostrarHistorial();
+ if(seccion==="gastos")mostrarGastos();
+
  if(seccion==="corte"){
-  document.getElementById("fechaCorte").value=new Date().toLocaleDateString("en-CA");
+  document.getElementById("fechaCorte").value=fechaHoy();
   mostrarCorte();
  }
 }
@@ -204,10 +244,13 @@ function agregarProducto(){
   id:"P"+Date.now(),
   codigo,nombre,compra,precio,stock,minimo,categoria
  });
+
  guardar();
+
  ["codigo","nombre","compra","precio","categoria"].forEach(id=>document.getElementById(id).value="");
  document.getElementById("stock").value="0";
  document.getElementById("minimo").value="5";
+
  mostrarInventario();
  alert("Producto guardado.");
 }
@@ -215,6 +258,7 @@ function agregarProducto(){
 function mostrarInventario(){
  let q=document.getElementById("buscarInventario").value.toLowerCase();
  let html="";
+
  productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
  .forEach(p=>{
   html+=`<div class="producto">
@@ -225,6 +269,7 @@ function mostrarInventario(){
   <button onclick="editarStock('${p.id}')">Ajustar</button>
   </div>`;
  });
+
  document.getElementById("listaInventario").innerHTML=html||"No hay productos.";
  mostrarSelect();
 }
@@ -233,10 +278,12 @@ function editarStock(id){
  let p=productos.find(x=>x.id===id);
  let nuevo=prompt("Existencias actuales de "+p.nombre,p.stock);
  if(nuevo===null)return;
+
  if(!/^\d+$/.test(nuevo)){
   alert("Escribe una cantidad entera válida.");
   return;
  }
+
  p.stock=Number(nuevo);
  guardar();
  mostrarInventario();
@@ -254,10 +301,12 @@ function entradaMercancia(){
  let id=document.getElementById("productoEntrada").value;
  let cantidad=Number(document.getElementById("cantidadEntrada").value);
  let p=productos.find(x=>x.id===id);
+
  if(!p||!Number.isInteger(cantidad)||cantidad<=0){
   alert("Selecciona un producto y una cantidad válida.");
   return;
  }
+
  p.stock+=cantidad;
  guardar();
  document.getElementById("cantidadEntrada").value="";
@@ -269,10 +318,12 @@ function buscarCodigo(){
  let codigo=document.getElementById("scanner").value.trim();
  let p=productos.find(x=>x.codigo===codigo);
  document.getElementById("scanner").value="";
+
  if(!p){
   document.getElementById("mensaje").textContent="Producto no encontrado. Regístralo en Inventario.";
   return;
  }
+
  agregarCarrito(p.id);
  document.getElementById("mensaje").textContent="Producto agregado: "+p.nombre;
 }
@@ -287,19 +338,24 @@ document.getElementById("scanner").addEventListener("keydown",e=>{
 function agregarCarrito(id){
  let p=productos.find(x=>x.id===id);
  if(!p)return;
+
  let item=carrito.find(x=>x.id===id);
  let cantidad=item?item.cantidad:0;
+
  if(cantidad>=p.stock){
   alert("No hay existencias suficientes.");
   return;
  }
+
  if(item)item.cantidad++;
  else carrito.push({id,cantidad:1});
+
  mostrarCarrito();
 }
 
 function mostrarVenta(){
  let q=document.getElementById("buscar").value.toLowerCase();
+
  document.getElementById("listaVenta").innerHTML=
  productos.filter(p=>(p.nombre+" "+p.codigo).toLowerCase().includes(q))
  .map(p=>`<div class="producto">
@@ -310,8 +366,11 @@ function mostrarVenta(){
 
 function mostrarCarrito(){
  let html="";
+
  carrito.forEach((item,i)=>{
   let p=productos.find(x=>x.id===item.id);
+  if(!p)return;
+
   html+=`<div class="producto">
   <span>${seguro(p.nombre)}<br>${item.cantidad} x ${dinero(p.precio)}</span>
   <div>
@@ -320,6 +379,7 @@ function mostrarCarrito(){
   <button class="danger" onclick="quitar(${i})">X</button>
   </div></div>`;
  });
+
  document.getElementById("carrito").innerHTML=html||"Carrito vacío.";
  actualizarTotal();
  mostrarVenta();
@@ -328,12 +388,15 @@ function mostrarCarrito(){
 function cantidad(i,n){
  let item=carrito[i];
  let p=productos.find(x=>x.id===item.id);
+
  if(n>0&&item.cantidad>=p.stock){
   alert("No hay más existencias.");
   return;
  }
+
  item.cantidad+=n;
  if(item.cantidad<=0)carrito.splice(i,1);
+
  mostrarCarrito();
 }
 
@@ -345,13 +408,14 @@ function quitar(i){
 function totalVenta(){
  return carrito.reduce((s,item)=>{
   let p=productos.find(x=>x.id===item.id);
-  return s+p.precio*item.cantidad;
+  return s+(p?p.precio*item.cantidad:0);
  },0);
 }
 
 function actualizarTotal(){
  let total=totalVenta();
  document.getElementById("total").textContent=dinero(total);
+
  let efectivo=Number(document.getElementById("efectivo").value)||0;
  document.getElementById("cambio").textContent=dinero(Math.max(0,efectivo-total));
 }
@@ -363,9 +427,12 @@ document.getElementById("buscarInventario").addEventListener("input",mostrarInve
 function cobrar(){
  let total=totalVenta();
  let efectivo=Number(document.getElementById("efectivo").value);
+
  if(!carrito.length){alert("Carrito vacío.");return;}
+
  if(!Number.isFinite(efectivo)||efectivo<total){
-  alert("El efectivo es insuficiente.");return;
+  alert("El efectivo es insuficiente.");
+  return;
  }
 
  for(let item of carrito){
@@ -393,16 +460,15 @@ function cobrar(){
  });
 
  guardar();
+
  alert("Venta realizada.\nTotal: "+dinero(total)+"\nCambio: "+dinero(efectivo-total));
+
  carrito=[];
  document.getElementById("efectivo").value="";
  mostrarCarrito();
  mostrarInventario();
 }
 
-mostrarInventario();
-mostrarVenta();
-mostrarCarrito();
 function mostrarHistorial(){
  const contenedor=document.getElementById("listaHistorial");
 
@@ -415,7 +481,7 @@ function mostrarHistorial(){
   let fecha=new Date(v.fecha).toLocaleString("es-MX");
 
   let productosHTML=(v.productos||[]).map(p=>
-   `<p>${p.nombre} - ${p.cantidad} x ${dinero(p.precio)}</p>`
+   `<p>${seguro(p.nombre)} - ${p.cantidad} x ${dinero(p.precio)}</p>`
   ).join("");
 
   return `
@@ -431,7 +497,61 @@ function mostrarHistorial(){
   `;
  }).join("");
 }
- function mostrarCorte(){
+
+function registrarGasto(){
+ const concepto=document.getElementById("conceptoGasto").value.trim();
+ const importe=Number(document.getElementById("importeGasto").value);
+ const descripcion=document.getElementById("descripcionGasto").value.trim();
+
+ if(!concepto){
+  alert("Escribe el concepto del gasto.");
+  return;
+ }
+
+ if(!Number.isFinite(importe)||importe<=0){
+  alert("Escribe un importe válido.");
+  return;
+ }
+
+ gastos.push({
+  id:"G"+Date.now(),
+  fecha:new Date().toISOString(),
+  concepto,
+  importe,
+  descripcion
+ });
+
+ guardar();
+
+ document.getElementById("conceptoGasto").value="";
+ document.getElementById("importeGasto").value="";
+ document.getElementById("descripcionGasto").value="";
+
+ mostrarGastos();
+ alert("Gasto registrado correctamente.");
+}
+
+function mostrarGastos(){
+ const contenedor=document.getElementById("listaGastos");
+
+ if(gastos.length===0){
+  contenedor.innerHTML="<p>No hay gastos registrados.</p>";
+  return;
+ }
+
+ contenedor.innerHTML=[...gastos].reverse().map(g=>`
+  <div class="producto">
+   <span>
+    <b>${seguro(g.concepto)}</b><br>
+    ${new Date(g.fecha).toLocaleString("es-MX")}<br>
+    ${seguro(g.descripcion||"Sin descripción")}
+   </span>
+   <b>${dinero(g.importe)}</b>
+  </div>
+ `).join("");
+}
+
+function mostrarCorte(){
  const fecha=document.getElementById("fechaCorte").value;
  const resultado=document.getElementById("resultadoCorte");
 
@@ -440,15 +560,18 @@ function mostrarHistorial(){
   return;
  }
 
- const ventasDia=ventas.filter(v=>{
-  return new Date(v.fecha).toLocaleDateString("en-CA")===fecha;
- });
+ const ventasDia=ventas.filter(v=>fechaLocal(v.fecha)===fecha);
+ const gastosDia=gastos.filter(g=>fechaLocal(g.fecha)===fecha);
 
  const numeroVentas=ventasDia.length;
  const totalVendido=ventasDia.reduce((s,v)=>s+Number(v.total),0);
  const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
  const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
  const efectivoNeto=efectivoRecibido-cambioEntregado;
+
+ const numeroGastos=gastosDia.length;
+ const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0);
+ const efectivoFinal=efectivoNeto-totalGastos;
 
  resultado.innerHTML=`
   <div class="panel">
@@ -458,10 +581,25 @@ function mostrarHistorial(){
    <p>Total vendido: <b>${dinero(totalVendido)}</b></p>
    <p>Efectivo recibido: ${dinero(efectivoRecibido)}</p>
    <p>Cambio entregado: ${dinero(cambioEntregado)}</p>
-   <h3>Efectivo neto: ${dinero(efectivoNeto)}</h3>
+   <h3>Efectivo neto de ventas: ${dinero(efectivoNeto)}</h3>
+
+   <hr>
+
+   <h3>Gastos de caja</h3>
+   <p>Número de gastos: ${numeroGastos}</p>
+   <p>Total de gastos: <b>${dinero(totalGastos)}</b></p>
+
+   <hr>
+
+   <h2>Efectivo final en caja: ${dinero(efectivoFinal)}</h2>
+   <p class="small">Cálculo: efectivo neto de ventas menos gastos registrados.</p>
   </div>
  `;
- }
+}
+
+mostrarInventario();
+mostrarVenta();
+mostrarCarrito();
 </script>
 </body>
 </html>
