@@ -2,57 +2,150 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PuntoMax POS</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f1f4f9;
-      color: #173b70;
-    }
-    header {
-      background: #173b70;
-      color: white;
-      padding: 25px;
-      text-align: center;
-    }
-    main {
-      padding: 25px;
-      text-align: center;
-    }
-    .panel {
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      max-width: 400px;
-      margin: 30px auto;
-      box-shadow: 0 3px 12px #0001;
-    }
-    button {
-      background: #173b70;
-      color: white;
-      border: 0;
-      padding: 14px 25px;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuntoMax POS</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f1f4f9;color:#19375f}
+header{background:#173b70;color:white;padding:18px}
+header h1{margin:0}
+main{padding:15px;max-width:900px;margin:auto}
+.panel{background:white;padding:16px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
+input,button{padding:12px;border-radius:7px;font-size:16px}
+input{border:1px solid #ccd3df;width:100%;margin:5px 0 12px}
+button{border:0;background:#173b70;color:white;cursor:pointer}
+.producto{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #eee;padding:12px 0}
+.producto button{padding:9px 13px}
+.total{font-size:26px;font-weight:bold;color:#173b70}
+.eliminar{background:#b42318}
+</style>
 </head>
 <body>
-  <header>
-    <h1>PuntoMax POS</h1>
-    <p>Sistema de punto de venta</p>
-  </header>
-  <main>
-    <div class="panel">
-      <h2>¡Bienvenido!</h2>
-      <p>Tu sistema de ventas está comenzando.</p>
-      <button onclick="alert('PuntoMax POS funcionando')">
-        Comenzar
-      </button>
-    </div>
-  </main>
+<header>
+<h1>PuntoMax POS</h1>
+<p>Punto de venta</p>
+</header>
+<main>
+<div class="panel">
+<h2>Agregar producto</h2>
+<label>Nombre del producto</label>
+<input id="nombre" placeholder="Ej. Coca Cola 600 ml">
+<label>Precio ($)</label>
+<input id="precio" type="number" min="0.01" step="0.01" placeholder="Ej. 20">
+<button onclick="agregarProducto()">Agregar producto</button>
+</div>
+
+<div class="panel">
+<h2>Productos</h2>
+<div id="productos"></div>
+</div>
+
+<div class="panel">
+<h2>Carrito de venta</h2>
+<div id="carrito">No hay productos agregados.</div>
+<p>Total: <span class="total" id="total">$0.00</span></p>
+<label>Efectivo recibido ($)</label>
+<input id="efectivo" type="number" min="0" step="0.01" placeholder="Cantidad recibida">
+<p>Cambio: <strong id="cambio">$0.00</strong></p>
+<button onclick="cobrar()">Cobrar venta</button>
+</div>
+</main>
+
+<script>
+let productos=[];
+let carrito=[];
+
+function dinero(n){
+ return "$"+n.toFixed(2);
+}
+
+function agregarProducto(){
+ let nombre=document.getElementById("nombre").value.trim();
+ let precio=parseFloat(document.getElementById("precio").value);
+
+ if(!nombre || !Number.isFinite(precio) || precio<=0){
+  alert("Escribe un nombre y un precio válido.");
+  return;
+ }
+
+ productos.push({nombre,precio});
+ document.getElementById("nombre").value="";
+ document.getElementById("precio").value="";
+ mostrarProductos();
+}
+
+function mostrarProductos(){
+ let html="";
+ productos.forEach((p,i)=>{
+  html+=`<div class="producto">
+  <span>${p.nombre}<br>${dinero(p.precio)}</span>
+  <button onclick="agregarCarrito(${i})">Agregar</button>
+  </div>`;
+ });
+ document.getElementById("productos").innerHTML=html || "Todavía no hay productos.";
+}
+
+function agregarCarrito(i){
+ let item=carrito.find(x=>x.indice===i);
+ if(item){item.cantidad++;}
+ else{carrito.push({indice:i,cantidad:1});}
+ mostrarCarrito();
+}
+
+function mostrarCarrito(){
+ let html="";
+ carrito.forEach((item,i)=>{
+  let p=productos[item.indice];
+  html+=`<div class="producto">
+  <span>${p.nombre}<br>${item.cantidad} x ${dinero(p.precio)}</span>
+  <div>
+  <button onclick="cambiarCantidad(${i},1)">+</button>
+  <button onclick="cambiarCantidad(${i},-1)">-</button>
+  <button class="eliminar" onclick="quitar(${i})">X</button>
+  </div></div>`;
+ });
+ document.getElementById("carrito").innerHTML=html || "No hay productos agregados.";
+ actualizarTotal();
+}
+
+function cambiarCantidad(i,n){
+ carrito[i].cantidad+=n;
+ if(carrito[i].cantidad<=0) carrito.splice(i,1);
+ mostrarCarrito();
+}
+
+function quitar(i){
+ carrito.splice(i,1);
+ mostrarCarrito();
+}
+
+function actualizarTotal(){
+ let total=carrito.reduce((s,item)=>s+productos[item.indice].precio*item.cantidad,0);
+ document.getElementById("total").textContent=dinero(total);
+ let efectivo=Number(document.getElementById("efectivo").value)||0;
+ document.getElementById("cambio").textContent=dinero(Math.max(0,efectivo-total));
+}
+
+document.getElementById("efectivo").addEventListener("input",actualizarTotal);
+
+function cobrar(){
+ let total=carrito.reduce((s,item)=>s+productos[item.indice].precio*item.cantidad,0);
+ let efectivo=Number(document.getElementById("efectivo").value);
+
+ if(!carrito.length){alert("El carrito está vacío.");return;}
+ if(!Number.isFinite(efectivo)||efectivo<total){
+  alert("El efectivo recibido es insuficiente.");
+  return;
+ }
+
+ alert("Venta realizada. Cambio: "+dinero(efectivo-total));
+ carrito=[];
+ document.getElementById("efectivo").value="";
+ mostrarCarrito();
+}
+mostrarProductos();
+mostrarCarrito();
+</script>
 </body>
 </html>
