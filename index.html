@@ -721,8 +721,86 @@ function registrarDevolucion(){
  mostrarHistorialDevoluciones();
  mostrarDetalleDevolucion();
 
- alert("Devolución registrada.\nImporte: "+dinero(total)+"\nLas existencias fueron actualizadas.");
+alert("Devolución registrada.\nImporte: "+dinero(total)+"\nLas existencias fueron actualizadas.");
 }
 
 function mostrarHistorialDevoluciones(){
- co
+ const contenedor=document.getElementById("listaDevoluciones");
+
+ if(!devoluciones.length){
+  contenedor.innerHTML="<p>No hay devoluciones registradas.</p>";
+  return;
+ }
+
+ contenedor.innerHTML=[...devoluciones].reverse().map(d=>{
+  const detalle=(d.productos||[]).map(p=>
+   `<p>${seguro(p.nombre)}: ${p.cantidad} x ${dinero(p.precio)}</p>`
+  ).join("");
+
+  return `
+   <div class="panel">
+    <h3>Devolución ${seguro(d.id)}</h3>
+    <p>Venta: ${seguro(d.ventaId)}</p>
+    <p>Fecha: ${new Date(d.fecha).toLocaleString("es-MX")}</p>
+    <p>Motivo: ${seguro(d.motivo)}</p>
+    ${detalle}
+    <p><b>Total devuelto: ${dinero(d.total)}</b></p>
+   </div>
+  `;
+ }).join("");
+}
+
+function mostrarCorte(){
+ const fecha=document.getElementById("fechaCorte").value;
+ const resultado=document.getElementById("resultadoCorte");
+
+ if(!fecha){
+  resultado.innerHTML="<p>Selecciona una fecha.</p>";
+  return;
+ }
+
+ const ventasDia=ventas.filter(v=>fechaLocal(v.fecha)===fecha);
+ const gastosDia=gastos.filter(g=>fechaLocal(g.fecha)===fecha);
+ const devolucionesDia=devoluciones.filter(d=>fechaLocal(d.fecha)===fecha);
+
+ const numeroVentas=ventasDia.length;
+ const totalVendido=ventasDia.reduce((s,v)=>s+Number(v.total),0);
+ const efectivoRecibido=ventasDia.reduce((s,v)=>s+Number(v.efectivo),0);
+ const cambioEntregado=ventasDia.reduce((s,v)=>s+Number(v.cambio),0);
+ const efectivoNeto=efectivoRecibido-cambioEntregado;
+
+ const totalGastos=gastosDia.reduce((s,g)=>s+Number(g.importe),0);
+ const totalDevoluciones=devolucionesDia.reduce((s,d)=>s+Number(d.total),0);
+ const efectivoFinal=efectivoNeto-totalGastos-totalDevoluciones;
+
+ resultado.innerHTML=`
+  <div class="panel">
+   <h3>Resumen del día</h3>
+   <p>Fecha: ${fecha}</p>
+   <p>Número de ventas: ${numeroVentas}</p>
+   <p>Total vendido: <b>${dinero(totalVendido)}</b></p>
+   <p>Efectivo recibido: ${dinero(efectivoRecibido)}</p>
+   <p>Cambio entregado: ${dinero(cambioEntregado)}</p>
+   <h3>Efectivo neto de ventas: ${dinero(efectivoNeto)}</h3>
+   <hr>
+   <h3>Gastos de caja</h3>
+   <p>Número de gastos: ${gastosDia.length}</p>
+   <p>Total de gastos: ${dinero(totalGastos)}</p>
+   <hr>
+   <h3>Devoluciones</h3>
+   <p>Número de devoluciones: ${devolucionesDia.length}</p>
+   <p>Total devuelto: ${dinero(totalDevoluciones)}</p>
+   <hr>
+   <h2>Efectivo final en caja: ${dinero(efectivoFinal)}</h2>
+   <p class="small">Cálculo: efectivo neto de ventas menos gastos y devoluciones.</p>
+  </div>
+ `;
+}
+
+mostrarInventario();
+mostrarVenta();
+mostrarCarrito();
+guardar();
+</script>
+</body>
+</html>
