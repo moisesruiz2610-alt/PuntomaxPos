@@ -38,6 +38,7 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="ver('ventas')">Punto de venta</button>
 <button onclick="ver('inventario')">Inventario</button>
 <button onclick="ver('entradas')">Entradas</button>
+<button onclick="ver('historial')">Historial de ventas</button>
 </div>
 </div>
 
@@ -104,6 +105,12 @@ button{border:0;background:#173b70;color:white;cursor:pointer;margin:3px}
 <button onclick="entradaMercancia()">Registrar entrada</button>
 </div>
 </section>
+ <section id="historial" class="hidden">
+  <div class="panel">
+    <h2>Historial de ventas</h2>
+    <div id="listaHistorial"></div>
+  </div>
+ </section>
 </main>
 
 <script>
@@ -145,12 +152,14 @@ function seguro(s){
 }
 
 function ver(seccion){
- ["ventas","inventario","entradas"].forEach(id=>{
+ ["ventas","inventario","entradas","historial"].forEach(id=>{
   document.getElementById(id).classList.toggle("hidden",id!==seccion);
  });
+
  if(seccion==="inventario")mostrarInventario();
  if(seccion==="entradas")mostrarSelect();
  if(seccion==="ventas")mostrarVenta();
+ if(seccion==="historial")mostrarHistorial();
 }
 
 function agregarProducto(){
@@ -377,6 +386,34 @@ function cobrar(){
 mostrarInventario();
 mostrarVenta();
 mostrarCarrito();
+function mostrarHistorial(){
+ const contenedor=document.getElementById("listaHistorial");
+
+ if(ventas.length===0){
+  contenedor.innerHTML="<p>No hay ventas registradas.</p>";
+  return;
+ }
+
+ contenedor.innerHTML=[...ventas].reverse().map((v,i)=>{
+  let fecha=new Date(v.fecha).toLocaleString("es-MX");
+
+  let productosHTML=(v.productos||[]).map(p=>
+   `<p>${p.nombre} - ${p.cantidad} x ${dinero(p.precio)}</p>`
+  ).join("");
+
+  return `
+   <div class="panel">
+    <h3>Venta ${ventas.length-i}</h3>
+    <p><b>Fecha:</b> ${fecha}</p>
+    <h4>Productos:</h4>
+    ${productosHTML}
+    <p><b>Total:</b> ${dinero(v.total)}</p>
+    <p><b>Efectivo:</b> ${dinero(v.efectivo)}</p>
+    <p><b>Cambio:</b> ${dinero(v.cambio)}</p>
+   </div>
+  `;
+ }).join("");
+}
 </script>
 </body>
 </html>
