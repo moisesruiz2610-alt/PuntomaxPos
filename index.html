@@ -984,9 +984,14 @@ function registrarCancelacion(id){
  if(!confirm("¿Cancelar la venta y reintegrar "+dinero(totalReintegrado)+"?"))return;
 
  articulos.forEach(a=>{
-  let producto=productos.find(p=>p.id===a.productoId);
-  producto.stock+=a.cantidad;
- });
+  let producto=buscarProductoVendido(a);
+
+  if(!producto){
+    throw new Error("No se encontró el producto: "+a.nombre);
+  }
+
+  producto.stock=(Number(producto.stock)||0)+Number(a.cantidad);
+});
 
  cancelaciones.push({
   id:"C"+Date.now(),
