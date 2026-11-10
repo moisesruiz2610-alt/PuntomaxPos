@@ -928,6 +928,7 @@ function cargarVentaCancelacion(){
 
 /* REGISTRAR CANCELACIÓN */
 
+
 function registrarCancelacion(id){
  let v=ventas.find(x=>x.id===id);
 
@@ -981,19 +982,29 @@ function registrarCancelacion(id){
   return;
  }
 
- if(!confirm("¿Cancelar la venta y reintegrar "+dinero(totalReintegrado)+"?"))return;
+ if(!confirm("¿Cancelar la venta y reintegrar "+
+ dinero(totalReintegrado)+"?"))return;
 
- articulos.forEach(a=>{
-  let producto=buscarProductoVendido(a);
+ // Verificar todos los productos antes de modificar existencias
+ let actualizaciones=articulos.map(a=>{
+  let producto=productos.find(p=>p.id===a.productoId);
 
-  if(!producto){
-    throw new Error("No se encontró el producto: "+a.nombre);
-  }
+  if(!producto)return null;
 
-  producto.stock=(Number(producto.stock)||0)+Number(a.cantidad);
-});
+  return {
+   producto:producto,
+   cantidad:a.cantidad,
+   stockAnterior:Number(producto.stock)||0
+  };
+ });
 
- cancelaciones.push({
+ if(actualizaciones.some(a=>!a)){
+  alert("No se pudo identificar un producto. No se modificó el inventario.");
+  return;
+ }
+
+ // Preparar la cancelación
+ let nuevaCancelacion={
   id:"C"+Date.now(),
   ventaId:v.id,
   fecha:new Date().toISOString(),
@@ -1001,8 +1012,17 @@ function registrarCancelacion(id){
   totalOriginal:Number(v.total)||0,
   totalReintegrado:totalReintegrado,
   productos:articulos
+ };
+
+ // Reintegrar existencias
+ actualizaciones.forEach(a=>{
+  a.producto.stock=a.stockAnterior+Number(a.cantidad);
  });
 
+ // Registrar cancelación
+ cancelaciones.push(nuevaCancelacion);
+
+ // Guardar inventario e historial
  guardar();
 
  document.getElementById("detalleCancelacion").innerHTML="";
@@ -1015,8 +1035,9 @@ function registrarCancelacion(id){
  mostrarInventario();
  mostrarVenta();
 
- alert("Cancelación registrada correctamente.");
-}
+ alert("Cancelación registrada y existencias reintegradas correctamente.");
+ }
+   
 
 /* HISTORIAL DE CANCELACIONES */
 
